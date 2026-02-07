@@ -1,7 +1,7 @@
 # 开放世界 NPC 对话记忆测试
 
 基于 **mem0** 的开放世界 NPC 对话记忆 Demo：支持长期/短期记忆、过程记忆，可切换 **MongoDB** 或 **PostgreSQL（pgvector）** 作为向量库，便于对比不同后端的存储与召回表现。
-
+![alt text](images/demo-1.png)
 ---
 
 ## 功能概览
