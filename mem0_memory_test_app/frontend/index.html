@@ -1,0 +1,561 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>开放世界 NPC 对话记忆 · MongoDB vs PostgreSQL</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ========== LeafyGreen-aligned tokens (static HTML) ========== */
+    :root {
+      --gray-0: #001e2b;
+      --gray-1: #0d2d3a;
+      --gray-2: #134354;
+      --gray-3: #234a57;
+      --gray-4: #5c6f7a;
+      --gray-5: #8899a6;
+      --gray-6: #b7c4cd;
+      --gray-7: #e5e9ec;
+      --green-base: #13aa52;
+      --green-hover: #0d7d3a;
+      --blue-base: #00684a;
+      --red-base: #e33843;
+      --border: var(--gray-3);
+      --surface: var(--gray-1);
+      --text: var(--gray-7);
+      --text-muted: var(--gray-5);
+      --font-sans: "Source Sans 3", system-ui, sans-serif;
+      --font-mono: "Source Code Pro", monospace;
+      --radius: 6px;
+      --space-xs: 0.25rem;
+      --space-sm: 0.5rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+    }
+
+    /* ========== Base & layout ========== */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: var(--font-sans);
+      font-size: 14px;
+      background: var(--gray-0);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+    .app-body {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: row;
+      --log-panel-width: 420px;
+    }
+    .app-panel-left {
+      flex: 1;
+      min-width: 200px;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
+    .app-resizer {
+      width: 6px;
+      flex-shrink: 0;
+      cursor: col-resize;
+      background: var(--border);
+      transition: background 0.15s;
+    }
+    .app-resizer:hover,
+    .app-resizer:active { background: var(--green-base); }
+    .app-panel-right {
+      width: var(--log-panel-width);
+      min-width: 220px;
+      max-width: 80%;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      border-left: 1px solid var(--border);
+      background: var(--gray-1);
+    }
+
+    /* ========== Header ========== */
+    .app-header {
+      flex-shrink: 0;
+      padding: var(--space-md) var(--space-lg);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      flex-wrap: wrap;
+      background: var(--surface);
+    }
+    .app-header__logo {
+      display: block;
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+    .app-header__logo img { width: 100%; height: 100%; object-fit: contain; }
+    .app-header__title { font-size: 1.125rem; font-weight: 600; margin: 0; }
+    .app-header__meta { margin-left: auto; font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono); }
+
+    .form-group {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+    .form-group label {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .form-group select,
+    .form-group input[type="text"] {
+      font-family: var(--font-mono);
+      font-size: 0.8125rem;
+      padding: var(--space-sm) var(--space-sm);
+      min-width: 120px;
+      background: var(--gray-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+    }
+    .form-group select:focus,
+    .form-group input:focus {
+      outline: none;
+      border-color: var(--green-base);
+    }
+    .form-group input[type="text"] { width: 100px; }
+    .form-group input#user-id { width: 110px; }
+
+    /* ========== Main content (left panel) ========== */
+    .app-main {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      max-width: 720px;
+      width: 100%;
+      margin: 0 auto;
+      padding: var(--space-md) var(--space-lg) var(--space-md);
+    }
+
+    /* ========== Messages list ========== */
+    .messages {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      padding: var(--space-sm) 0;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-md);
+    }
+    .message {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+    }
+    .message__role {
+      font-size: 0.6875rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .message--user .message__role { color: var(--green-base); }
+    .message--assistant .message__role { color: var(--blue-base); }
+    .message__content {
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+    .message__recalled {
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      background: var(--gray-2);
+      padding: var(--space-sm) var(--space-md);
+      border-radius: var(--radius);
+      margin-top: var(--space-sm);
+    }
+
+    /* ========== Input area ========== */
+    .input-area {
+      flex-shrink: 0;
+      display: flex;
+      gap: var(--space-sm);
+      align-items: stretch;
+      margin-top: var(--space-sm);
+    }
+    .input-area__field {
+      flex: 1;
+      min-height: 40px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      padding: var(--space-sm) var(--space-md);
+      background: var(--gray-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      color: var(--text);
+      resize: none;
+    }
+    .input-area__field:focus {
+      outline: none;
+      border-color: var(--green-base);
+    }
+    .input-area__submit {
+      min-height: 40px;
+      padding: 0 var(--space-md);
+      font-weight: 500;
+      font-family: var(--font-sans);
+      font-size: 0.9375rem;
+      background: var(--green-base);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius);
+      cursor: pointer;
+    }
+    .input-area__submit:hover { background: var(--green-hover); }
+    .input-area__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    /* ========== Status bar ========== */
+    .status-bar {
+      flex-shrink: 0;
+      min-height: 1.25em;
+      margin: var(--space-sm) 0 0;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+    }
+    .status-bar--error { color: var(--red-base); }
+
+    /* ========== Log panel (right panel) ========== */
+    .log-panel {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      padding: var(--space-sm);
+    }
+    .log-panel__title {
+      flex-shrink: 0;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: var(--space-sm);
+    }
+    .log-panel__content {
+      flex: 1;
+      min-height: 0;
+      overflow: auto;
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      line-height: 1.4;
+      color: var(--gray-6);
+      background: var(--gray-0);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: var(--space-sm);
+      white-space: pre-wrap;
+      word-break: break-all;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header" role="banner">
+    <a class="app-header__logo" href="https://www.mongodb.com" target="_blank" rel="noopener noreferrer" aria-label="MongoDB">
+      <img src="https://www.mongodb.com/assets/images/global/favicon.ico" alt="MongoDB" width="28" height="28" />
+    </a>
+    <h1 class="app-header__title">开放世界 NPC 对话记忆</h1>
+    <div class="form-group">
+      <label for="backend-select">记忆后端</label>
+      <select id="backend-select" aria-label="记忆后端">
+        <option value="mongodb" selected>MongoDB</option>
+        <option value="postgres">PostgreSQL</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="llm-select">NPC 回复 LLM</label>
+      <select id="llm-select" aria-label="NPC 回复 LLM">
+        <option value="deepseek" selected>DeepSeek</option>
+        <option value="azure_openai">Azure OpenAI</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="user-id">玩家 ID</label>
+      <input type="text" id="user-id" value="player-1" aria-label="玩家 ID" />
+    </div>
+    <div class="form-group">
+      <label for="npc-id">当前 NPC</label>
+      <input type="text" id="npc-id" placeholder="留空=不按NPC隔离" aria-label="当前 NPC" />
+    </div>
+    <span id="api-url" class="app-header__meta" aria-live="polite"></span>
+  </header>
+
+  <div class="app-body">
+    <div class="app-panel-left">
+      <main class="app-main" role="main">
+        <div class="messages" id="messages" role="log" aria-live="polite" aria-label="对话消息列表"></div>
+        <div class="input-area">
+          <textarea
+            id="input"
+            class="input-area__field"
+            rows="1"
+            placeholder="以玩家身份与 NPC 对话，测试跨轮记忆…"
+            autocomplete="off"
+            aria-label="输入消息"
+         ></textarea>
+          <button type="button" id="send" class="input-area__submit" aria-label="发送">发送</button>
+        </div>
+        <p id="status" class="status-bar" role="status" aria-live="polite">记忆后端: MongoDB · LLM: DeepSeek</p>
+      </main>
+    </div>
+    <div class="app-resizer" id="resizer" role="separator" aria-label="拖拽调整左右宽度"></div>
+    <aside class="app-panel-right" id="log-panel" aria-label="服务端日志">
+      <div class="log-panel">
+        <div class="log-panel__title">服务端日志</div>
+        <pre id="log-content" class="log-panel__content" aria-live="polite">连接日志流中…</pre>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+(function () {
+  "use strict";
+
+  // ---------- Config ----------
+  const CONFIG = {
+    getApiBase() {
+      const u = new URL(location.href);
+      if (u.protocol === "file:" || !u.hostname) return "http://127.0.0.1:8000";
+      if (u.port === "5500" || u.port === "3000") return "http://127.0.0.1:8000";
+      return (u.origin.replace(/:\d+$/, "") || "http://127.0.0.1") + ":8000";
+    },
+  };
+
+  const API_BASE = CONFIG.getApiBase();
+
+  // ---------- Labels ----------
+  const LABELS = {
+    backend: (v) => v === "postgres" ? "PostgreSQL" : "MongoDB",
+    llm: (v) => v === "azure_openai" ? "Azure OpenAI" : "DeepSeek",
+  };
+
+  // ---------- DOM refs ----------
+  const refs = {
+    apiUrl: document.getElementById("api-url"),
+    backendSelect: document.getElementById("backend-select"),
+    llmSelect: document.getElementById("llm-select"),
+    messages: document.getElementById("messages"),
+    input: document.getElementById("input"),
+    send: document.getElementById("send"),
+    status: document.getElementById("status"),
+    userId: document.getElementById("user-id"),
+    npcId: document.getElementById("npc-id"),
+    logContent: document.getElementById("log-content"),
+  };
+
+  // ---------- Status ----------
+  function setStatus(text, isError = false) {
+    const el = document.getElementById("status");
+    if (el) {
+      el.textContent = text;
+      el.classList.toggle("status-bar--error", isError);
+    }
+  }
+
+  function getStatusLine(prefix = "") {
+    const backend = refs.backendSelect ? refs.backendSelect.value : "mongodb";
+    const llm = refs.llmSelect ? refs.llmSelect.value : "deepseek";
+    const p = prefix ? prefix + " · " : "";
+    return p + "记忆后端: " + LABELS.backend(backend) + " · LLM: " + LABELS.llm(llm);
+  }
+
+  // ---------- Messages ----------
+  function appendMessage(role, content, recalled = []) {
+    const div = document.createElement("div");
+    div.className = "message message--" + role;
+    div.setAttribute("data-role", role);
+    const roleLabel = role === "user" ? "玩家" : "NPC";
+    div.innerHTML =
+      "<span class=\"message__role\">" + roleLabel + "</span>" +
+      "<span class=\"message__content\"></span>" +
+      (recalled.length
+        ? "<div class=\"message__recalled\"><strong>本轮 NPC 召回的记忆</strong><br>" +
+          recalled.map((m) => "— " + m).join("<br>") + "</div>"
+        : "");
+    div.querySelector(".message__content").textContent = content;
+    refs.messages.appendChild(div);
+    refs.messages.scrollTop = refs.messages.scrollHeight;
+  }
+
+  // ---------- API ----------
+  async function checkHealth() {
+    try {
+      const r = await fetch(API_BASE + "/health", { method: "GET" });
+      if (r.ok) {
+        setStatus(getStatusLine("已连接"), false);
+      } else {
+        setStatus(getStatusLine("后端异常 " + r.status), true);
+      }
+    } catch (_) {
+      setStatus(getStatusLine("未连接"), true);
+    }
+  }
+
+  async function sendChat() {
+    const text = refs.input.value.trim();
+    if (!text) return;
+
+    refs.input.value = "";
+    refs.send.disabled = true;
+    appendMessage("user", text);
+    setStatus("请求中…");
+
+    try {
+      const res = await fetch(API_BASE + "/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: text,
+          user_id: refs.userId.value.trim() || "player-1",
+          npc_id: refs.npcId.value.trim() || null,
+          backend: refs.backendSelect.value,
+          llm_provider: refs.llmSelect.value,
+        }),
+      });
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (_) {
+        throw new Error("后端返回格式错误，请查看后端终端日志");
+      }
+      if (!res.ok) throw new Error(data.detail || res.statusText || "请求失败");
+
+      appendMessage("assistant", data.reply, data.recalled_memories || []);
+      if (data.backend) refs.backendSelect.value = data.backend;
+      if (data.llm_provider) refs.llmSelect.value = data.llm_provider;
+      setStatus(getStatusLine());
+    } catch (e) {
+      const msg = e.message || String(e);
+      const friendly = /load failed|failed to fetch|networkerror/i.test(msg)
+        ? "无法连接后端，请确认已在 backend 目录运行 ./run.sh"
+        : msg;
+      setStatus("请求失败: " + friendly, true);
+      appendMessage("assistant", "[错误: " + friendly + "]");
+    } finally {
+      refs.send.disabled = false;
+    }
+  }
+
+  // ---------- 拖拽调整左右面板宽度 ----------
+  function setupResizer() {
+    var body = document.querySelector(".app-body");
+    var resizer = document.getElementById("resizer");
+    var logPanel = document.getElementById("log-panel");
+    if (!body || !resizer || !logPanel) return;
+    var dragging = false;
+    resizer.addEventListener("mousedown", function (e) {
+      e.preventDefault();
+      dragging = true;
+    });
+    document.addEventListener("mousemove", function (e) {
+      if (!dragging) return;
+      var w = document.body.clientWidth - e.clientX;
+      if (w < 220) w = 220;
+      if (w > document.body.clientWidth * 0.8) w = document.body.clientWidth * 0.8;
+      body.style.setProperty("--log-panel-width", w + "px");
+    });
+    document.addEventListener("mouseup", function () {
+      dragging = false;
+    });
+  }
+
+  // ---------- Log stream (SSE)：输出完成后 1 秒内无新日志则追加换行分隔，再等下一批 ----------
+  function startLogStream() {
+    if (!refs.logContent) return;
+    const url = API_BASE + "/logs/stream";
+    var logSepTimer = null;
+    var LOG_IDLE_MS = 5000;
+
+    function appendLine(line) {
+      if (!refs.logContent) return;
+      var cur = refs.logContent.textContent;
+      refs.logContent.textContent = cur ? cur + "\n" + line : line;
+      refs.logContent.scrollTop = refs.logContent.scrollHeight;
+    }
+
+    function scheduleSeparator() {
+      if (logSepTimer) clearTimeout(logSepTimer);
+      logSepTimer = setTimeout(function () {
+        logSepTimer = null;
+        if (refs.logContent && refs.logContent.textContent)
+          refs.logContent.textContent += "\n\n";
+        refs.logContent.scrollTop = refs.logContent.scrollHeight;
+      }, LOG_IDLE_MS);
+    }
+
+    try {
+      const es = new EventSource(url);
+      var first = true;
+      es.onmessage = function (ev) {
+        try {
+          var data = JSON.parse(ev.data);
+          if (data.line !== undefined) {
+            if (first) {
+              refs.logContent.textContent = data.line;
+              first = false;
+            } else {
+              appendLine(data.line);
+            }
+            refs.logContent.scrollTop = refs.logContent.scrollHeight;
+            scheduleSeparator();
+          }
+        } catch (_) {}
+      };
+      es.onopen = function () {
+        if (refs.logContent.textContent === "连接日志流中…") refs.logContent.textContent = "";
+      };
+      es.onerror = function () {
+        es.close();
+        if (logSepTimer) clearTimeout(logSepTimer);
+        refs.logContent.textContent += (refs.logContent.textContent ? "\n" : "") + "[日志流已断开，请刷新页面重连]";
+      };
+    } catch (e) {
+      refs.logContent.textContent = "无法连接日志流: " + (e.message || String(e));
+    }
+  }
+
+  // ---------- Init (run when DOM ready) ----------
+  function init() {
+    refs.apiUrl.textContent = "API: " + API_BASE;
+    setStatus(getStatusLine("加载中…"));
+    checkHealth();
+    setupResizer();
+    startLogStream();
+    refs.backendSelect.addEventListener("change", () => setStatus(getStatusLine()));
+    refs.llmSelect.addEventListener("change", () => setStatus(getStatusLine()));
+    refs.send.addEventListener("click", sendChat);
+    refs.input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        sendChat();
+      }
+    });
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", init);
+  } else {
+    init();
+  }
+})();
+  </script>
+</body>
+</html>
