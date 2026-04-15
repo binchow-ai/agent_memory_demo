@@ -18,11 +18,11 @@
 
 ## ✨ 功能概览
 
-| Tab | 功能 |
-|-----|------|
-| **对话记忆** | 玩家与 NPC 对话 → 自动召回记忆 → 生成回复 → LLM 判定长期/短期并写入；备注展示判定结果与召回内容 |
-| **记忆管理** | 按关键词搜索 · 按玩家 ID 获取/删除记忆 |
-| **短期与过程记忆** | 按会话（session_id）/ 按过期时间 / 过程记忆（步骤流程）三种方式添加 |
+| Tab                | 功能                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| **对话记忆**       | 玩家与 NPC 对话 → 自动召回记忆 → 生成回复 → LLM 判定长期/短期并写入；备注展示判定结果与召回内容 |
+| **记忆管理**       | 按关键词搜索 · 按玩家 ID 获取/删除记忆                                                          |
+| **短期与过程记忆** | 按会话（session_id）/ 按过期时间 / 过程记忆（步骤流程）三种方式添加                             |
 
 > 右侧日志面板（SSE 实时推送）在所有 Tab 中共用。
 
@@ -32,12 +32,12 @@
 
 ## 🧠 记忆类型说明
 
-| 类型 | 区分方式 | 适用场景 | 存储 / 检索 |
-|:-----|:---------|:---------|:------------|
-| **长期记忆** | `user_id`，不设过期 | 用户偏好、账户信息、重要事实 | 永久保存，按 `user_id` + `agent_id` 检索 |
-| **短期记忆（会话）** | `session_id`（mem0 内部 `run_id`） | 当前会话上下文、多步任务 | 会话结束可清空，对话时一并检索 |
-| **短期记忆（过期）** | `expiration_date`（如 7 天后） | 临时提醒 | 过期后不再被检索 |
-| **过程记忆** | `memory_type=procedural_memory` | 步骤、流程、操作说明 | 按「怎么做」召回 |
+| 类型                 | 区分方式                           | 适用场景                     | 存储 / 检索                              |
+| :------------------- | :--------------------------------- | :--------------------------- | :--------------------------------------- |
+| **长期记忆**         | `user_id`，不设过期                | 用户偏好、账户信息、重要事实 | 永久保存，按 `user_id` + `agent_id` 检索 |
+| **短期记忆（会话）** | `session_id`（mem0 内部 `run_id`） | 当前会话上下文、多步任务     | 会话结束可清空，对话时一并检索           |
+| **短期记忆（过期）** | `expiration_date`（如 7 天后）     | 临时提醒                     | 过期后不再被检索                         |
+| **过程记忆**         | `memory_type=procedural_memory`    | 步骤、流程、操作说明         | 按「怎么做」召回                         |
 
 ### 写入规则
 
@@ -50,11 +50,11 @@
 
 ## 🏗️ 技术栈
 
-| 层 | 技术 |
-|----|------|
-| 后端 | FastAPI · mem0（OSS） · Voyage 嵌入 · DeepSeek |
-| 向量库 | MongoDB Atlas 或 PostgreSQL（pgvector） |
-| 前端 | 单页 HTML + 原生 JS · 左侧内容区 + 右侧可拖拽日志面板 |
+| 层     | 技术                                                  |
+| ------ | ----------------------------------------------------- |
+| 后端   | FastAPI · mem0（OSS） · Voyage 嵌入 · DeepSeek        |
+| 向量库 | MongoDB Atlas 或 PostgreSQL（pgvector）               |
+| 前端   | 单页 HTML + 原生 JS · 左侧内容区 + 右侧可拖拽日志面板 |
 
 ---
 
@@ -89,13 +89,13 @@ mem0_memory_gaming_app/
 
 在仓库根目录放置 `.env`（后端会优先读取仓库根目录的 `.env`），参考 `../.env.sample`：
 
-| 变量 | 必填 | 说明 |
-|------|:----:|------|
-| `MONGODB_URI` | △ | MongoDB 连接串（至少配一个向量库） |
-| `POSTGRES_URI` | △ | PostgreSQL 连接串 |
-| `VOYAGE_API_KEY` | ✅ | Voyage 嵌入（mem0 用） |
-| `DEEPSEEK_API_KEY` | ✅ | DeepSeek（NPC 回复 + 长短记忆分类） |
-| `DEEPSEEK_MODEL` | | 可选，默认 `deepseek-chat` |
+| 变量               | 必填 | 说明                                |
+| ------------------ | :--: | ----------------------------------- |
+| `MONGODB_URI`      |  △   | MongoDB 连接串（至少配一个向量库）  |
+| `POSTGRES_URI`     |  △   | PostgreSQL 连接串                   |
+| `VOYAGE_API_KEY`   |  ✅  | Voyage 嵌入（mem0 用）              |
+| `DEEPSEEK_API_KEY` |  ✅  | DeepSeek（NPC 回复 + 长短记忆分类） |
+| `DEEPSEEK_MODEL`   |      | 可选，默认 `deepseek-chat`          |
 
 > △ 表示至少配置一个向量库即可。
 
@@ -139,10 +139,10 @@ python -m http.server 5500
 
 ### 页头控制栏
 
-| 控件 | 说明 |
-|------|------|
-| 记忆后端 | MongoDB / PostgreSQL 切换 |
-| 玩家 ID | 同一 ID 下记忆共用，默认 `player-1` |
+| 控件     | 说明                                                       |
+| -------- | ---------------------------------------------------------- |
+| 记忆后端 | MongoDB / PostgreSQL 切换                                  |
+| 玩家 ID  | 同一 ID 下记忆共用，默认 `player-1`                        |
 | 当前 NPC | 填写则按「玩家 + NPC」隔离记忆；留空使用默认 `npc-default` |
 
 ### Tab 1 · 对话记忆
@@ -159,11 +159,11 @@ python -m http.server 5500
 
 ### Tab 3 · 短期与过程记忆
 
-| 功能 | 操作 |
-|------|------|
-| 短期（按会话） | 输入内容 + 会话 ID（留空用当前页会话）→ 添加 / 获取 / 清空 |
-| 短期（按过期时间） | 输入内容 + 过期天数（如 7）→ 添加，N 天后自动失效 |
-| 过程记忆 | 输入步骤流程文本 → 添加，类型为 `procedural_memory` |
+| 功能               | 操作                                                       |
+| ------------------ | ---------------------------------------------------------- |
+| 短期（按会话）     | 输入内容 + 会话 ID（留空用当前页会话）→ 添加 / 获取 / 清空 |
+| 短期（按过期时间） | 输入内容 + 过期天数（如 7）→ 添加，N 天后自动失效          |
+| 过程记忆           | 输入步骤流程文本 → 添加，类型为 `procedural_memory`        |
 
 > 添加时均带上当前玩家 ID 与 `agent_id`（与对话默认一致），保证对话能召回。
 
@@ -171,19 +171,19 @@ python -m http.server 5500
 
 ## 📡 API 一览
 
-| 方法 | 路径 | 说明 |
-|:----:|------|------|
-| `POST` | `/chat` | 对话：召回记忆 → 生成回复 → 判定长短记忆并写入 |
-| `GET` | `/health` | 健康检查 |
-| `GET` | `/logs/stream` | SSE 服务端日志流 |
-| `POST` | `/memory/search` | 语义搜索记忆 |
-| `POST` | `/memory/add` | 添加记忆（支持 `session_id` / `expiration_days` / `memory_type`） |
-| `GET` | `/memory/by-user` | 按玩家 ID 列出记忆 |
-| `GET` | `/memory/by-session` | 按会话列出短期记忆 |
-| `GET` | `/memory/{memory_id}` | 按 ID 获取单条 |
-| `PATCH` | `/memory/{memory_id}` | 按 ID 更新内容 |
-| `DELETE` | `/memory/{memory_id}` | 按 ID 删除单条 |
-| `DELETE` | `/memory` | 按范围删除（`user_id` / `agent_id` / `session_id`） |
+|   方法   | 路径                  | 说明                                                              |
+| :------: | --------------------- | ----------------------------------------------------------------- |
+|  `POST`  | `/chat`               | 对话：召回记忆 → 生成回复 → 判定长短记忆并写入                    |
+|  `GET`   | `/health`             | 健康检查                                                          |
+|  `GET`   | `/logs/stream`        | SSE 服务端日志流                                                  |
+|  `POST`  | `/memory/search`      | 语义搜索记忆                                                      |
+|  `POST`  | `/memory/add`         | 添加记忆（支持 `session_id` / `expiration_days` / `memory_type`） |
+|  `GET`   | `/memory/by-user`     | 按玩家 ID 列出记忆                                                |
+|  `GET`   | `/memory/by-session`  | 按会话列出短期记忆                                                |
+|  `GET`   | `/memory/{memory_id}` | 按 ID 获取单条                                                    |
+| `PATCH`  | `/memory/{memory_id}` | 按 ID 更新内容                                                    |
+| `DELETE` | `/memory/{memory_id}` | 按 ID 删除单条                                                    |
+| `DELETE` | `/memory`             | 按范围删除（`user_id` / `agent_id` / `session_id`）               |
 
 > 完整参数见 `http://127.0.0.1:8000/docs`
 
@@ -191,10 +191,10 @@ python -m http.server 5500
 
 ## 🗄️ 库表与索引
 
-| 后端 | 自动初始化 |
-|------|------------|
-| **MongoDB** | 数据库 `mem0_agent_memory` → 集合 `extracted_memories` → 向量搜索索引（新索引约 1 分钟就绪） |
-| **PostgreSQL** | `CREATE EXTENSION IF NOT EXISTS vector;`，mem0 首次写入时自动建表 |
+| 后端           | 自动初始化                                                                                   |
+| -------------- | -------------------------------------------------------------------------------------------- |
+| **MongoDB**    | 数据库 `mem0_agent_memory` → 集合 `extracted_memories` → 向量搜索索引（新索引约 1 分钟就绪） |
+| **PostgreSQL** | `CREATE EXTENSION IF NOT EXISTS vector;`，mem0 首次写入时自动建表                            |
 
 > 若只测一种后端，仅配置对应 URI 即可。
 
@@ -218,11 +218,11 @@ Supports **long-term / short-term / procedural memory**, with a switchable backe
 
 ### Features
 
-| Tab | What it does |
-|-----|--------------|
-| **Chat memory** | Chat with NPC → retrieve memory → generate reply → LLM classifies long/short memory and writes it back; UI shows the classification + retrieved memories |
-| **Memory admin** | Search memories · List/Delete memories by player id |
-| **Short-term & procedural** | Add memories by `session_id`, by expiration date, or as `procedural_memory` |
+| Tab                         | What it does                                                                                                                                             |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Chat memory**             | Chat with NPC → retrieve memory → generate reply → LLM classifies long/short memory and writes it back; UI shows the classification + retrieved memories |
+| **Memory admin**            | Search memories · List/Delete memories by player id                                                                                                      |
+| **Short-term & procedural** | Add memories by `session_id`, by expiration date, or as `procedural_memory`                                                                              |
 
 ### Memory types (quick reference)
 

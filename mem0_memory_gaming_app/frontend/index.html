@@ -1,1281 +1,1960 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>开放世界 NPC 对话记忆 · MongoDB存储记忆</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap" rel="stylesheet" />
-  <style>
-    /* ========== LeafyGreen-aligned tokens (static HTML) ========== */
-    :root {
-      --gray-0: #001e2b;
-      --gray-1: #0d2d3a;
-      --gray-2: #134354;
-      --gray-3: #234a57;
-      --gray-4: #5c6f7a;
-      --gray-5: #8899a6;
-      --gray-6: #b7c4cd;
-      --gray-7: #e5e9ec;
-      --green-base: #13aa52;
-      --green-hover: #0d7d3a;
-      --blue-base: #00684a;
-      --red-base: #e33843;
-      --border: var(--gray-3);
-      --surface: var(--gray-1);
-      --text: var(--gray-7);
-      --text-muted: var(--gray-5);
-      --font-sans: "Source Sans 3", system-ui, sans-serif;
-      --font-mono: "Source Code Pro", monospace;
-      --radius: 6px;
-      --space-xs: 0.25rem;
-      --space-sm: 0.5rem;
-      --space-md: 1rem;
-      --space-lg: 1.5rem;
-    }
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>开放世界 NPC 对话记忆 · MongoDB存储记忆</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&family=Source+Sans+3:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* ========== LeafyGreen-aligned tokens (static HTML) ========== */
+      :root {
+        --gray-0: #001e2b;
+        --gray-1: #0d2d3a;
+        --gray-2: #134354;
+        --gray-3: #234a57;
+        --gray-4: #5c6f7a;
+        --gray-5: #8899a6;
+        --gray-6: #b7c4cd;
+        --gray-7: #e5e9ec;
+        --green-base: #13aa52;
+        --green-hover: #0d7d3a;
+        --blue-base: #00684a;
+        --red-base: #e33843;
+        --border: var(--gray-3);
+        --surface: var(--gray-1);
+        --text: var(--gray-7);
+        --text-muted: var(--gray-5);
+        --font-sans: "Source Sans 3", system-ui, sans-serif;
+        --font-mono: "Source Code Pro", monospace;
+        --radius: 6px;
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 1rem;
+        --space-lg: 1.5rem;
+      }
 
-    /* ========== Base & layout ========== */
-    * { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; }
-    body {
-      font-family: var(--font-sans);
-      font-size: 14px;
-      background: var(--gray-0);
-      color: var(--text);
-      display: flex;
-      flex-direction: column;
-    }
-    .app-body {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: row;
-      --log-panel-width: 420px;
-    }
-    .app-panel-left {
-      flex: 1;
-      min-width: 200px;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-    }
-    .app-resizer {
-      width: 6px;
-      flex-shrink: 0;
-      cursor: col-resize;
-      background: var(--border);
-      transition: background 0.15s;
-    }
-    .app-resizer:hover,
-    .app-resizer:active { background: var(--green-base); }
-    .app-panel-right {
-      width: var(--log-panel-width);
-      min-width: 220px;
-      max-width: 80%;
-      flex-shrink: 0;
-      display: flex;
-      flex-direction: column;
-      border-left: 1px solid var(--border);
-      background: var(--gray-1);
-    }
+      /* ========== Base & layout ========== */
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        height: 100%;
+        margin: 0;
+      }
+      body {
+        font-family: var(--font-sans);
+        font-size: 14px;
+        background: var(--gray-0);
+        color: var(--text);
+        display: flex;
+        flex-direction: column;
+      }
+      .app-body {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: row;
+        --log-panel-width: 420px;
+      }
+      .app-panel-left {
+        flex: 1;
+        min-width: 200px;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+      }
+      .app-resizer {
+        width: 6px;
+        flex-shrink: 0;
+        cursor: col-resize;
+        background: var(--border);
+        transition: background 0.15s;
+      }
+      .app-resizer:hover,
+      .app-resizer:active {
+        background: var(--green-base);
+      }
+      .app-panel-right {
+        width: var(--log-panel-width);
+        min-width: 220px;
+        max-width: 80%;
+        flex-shrink: 0;
+        display: flex;
+        flex-direction: column;
+        border-left: 1px solid var(--border);
+        background: var(--gray-1);
+      }
 
-    /* ========== Header ========== */
-    .app-header {
-      flex-shrink: 0;
-      padding: var(--space-md) var(--space-lg);
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      flex-wrap: wrap;
-      background: var(--surface);
-    }
-    .app-header__logo {
-      display: block;
-      width: 28px;
-      height: 28px;
-      flex-shrink: 0;
-    }
-    .app-header__logo img { width: 100%; height: 100%; object-fit: contain; }
-    .app-header__title { font-size: 1.125rem; font-weight: 600; margin: 0; }
-    .app-header__right {
-      margin-left: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-      gap: var(--space-xs);
-      max-width: 100%;
-    }
-    .form-group {
-      display: flex;
-      align-items: center;
-      gap: var(--space-sm);
-    }
-    .form-group label {
-      font-size: 0.75rem;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-    }
-    .form-group select,
-    .form-group input[type="text"] {
-      font-family: var(--font-mono);
-      font-size: 0.8125rem;
-      padding: var(--space-sm) var(--space-sm);
-      min-width: 120px;
-      background: var(--gray-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-    }
-    .form-group select:focus,
-    .form-group input:focus {
-      outline: none;
-      border-color: var(--green-base);
-    }
-    .form-group input[type="text"] { width: 100px; }
-    .form-group input#user-id { width: 110px; }
-    .form-group select#npc-id { min-width: 120px; max-width: 195px; width: auto; }
-    .form-group--search-row {
-      flex-wrap: wrap;
-      font-size: 0.8125rem;
-      justify-content: flex-start;
-      width: 100%;
-      box-sizing: border-box;
-    }
-    .form-group--search-row label.form-group__check {
-      display: flex;
-      align-items: center;
-      gap: var(--space-xs);
-      text-transform: none;
-      letter-spacing: normal;
-      color: var(--text);
-      cursor: pointer;
-    }
-    .form-group--search-row input[type="checkbox"] {
-      accent-color: var(--green-base);
-      width: 14px;
-      height: 14px;
-    }
-    .form-group--search-row select#memory-vector-filter-mode { min-width: 110px; width: auto; }
-    .form-group--search-row select#wiki-fusion { min-width: 72px; width: auto; }
-    .form-group--search-row input#wiki-fts-weight {
-      width: 56px;
-      min-width: 56px;
-      max-width: 56px;
-    }
-    .form-group--search-row label[for="wiki-fts-weight"] {
-      text-transform: none;
-      letter-spacing: normal;
-      color: var(--text-muted);
-    }
+      /* ========== Header ========== */
+      .app-header {
+        flex-shrink: 0;
+        padding: var(--space-md) var(--space-lg);
+        border-bottom: 1px solid var(--border);
+        display: flex;
+        align-items: center;
+        gap: var(--space-md);
+        flex-wrap: wrap;
+        background: var(--surface);
+      }
+      .app-header__logo {
+        display: block;
+        width: 28px;
+        height: 28px;
+        flex-shrink: 0;
+      }
+      .app-header__logo img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+      }
+      .app-header__title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        margin: 0;
+      }
+      .app-header__right {
+        margin-left: auto;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: var(--space-xs);
+        max-width: 100%;
+      }
+      .form-group {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+      }
+      .form-group label {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .form-group select,
+      .form-group input[type="text"] {
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        padding: var(--space-sm) var(--space-sm);
+        min-width: 120px;
+        background: var(--gray-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+      }
+      .form-group select:focus,
+      .form-group input:focus {
+        outline: none;
+        border-color: var(--green-base);
+      }
+      .form-group input[type="text"] {
+        width: 100px;
+      }
+      .form-group input#user-id {
+        width: 110px;
+      }
+      .form-group select#npc-id {
+        min-width: 120px;
+        max-width: 195px;
+        width: auto;
+      }
+      .form-group--search-row {
+        flex-wrap: wrap;
+        font-size: 0.8125rem;
+        justify-content: flex-start;
+        width: 100%;
+        box-sizing: border-box;
+      }
+      .form-group--search-row label.form-group__check {
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+        text-transform: none;
+        letter-spacing: normal;
+        color: var(--text);
+        cursor: pointer;
+      }
+      .form-group--search-row input[type="checkbox"] {
+        accent-color: var(--green-base);
+        width: 14px;
+        height: 14px;
+      }
+      .form-group--search-row select#memory-vector-filter-mode {
+        min-width: 110px;
+        width: auto;
+      }
+      .form-group--search-row select#wiki-fusion {
+        min-width: 72px;
+        width: auto;
+      }
+      .form-group--search-row input#wiki-fts-weight {
+        width: 56px;
+        min-width: 56px;
+        max-width: 56px;
+      }
+      .form-group--search-row label[for="wiki-fts-weight"] {
+        text-transform: none;
+        letter-spacing: normal;
+        color: var(--text-muted);
+      }
 
-    /* ========== Tabs (left panel) ========== */
-    .app-tabs {
-      flex-shrink: 0;
-      display: flex;
-      gap: 0;
-      border-bottom: 1px solid var(--border);
-      padding: 0 var(--space-lg);
-      background: var(--gray-1);
-    }
-    .app-tabs__tab {
-      padding: var(--space-sm) var(--space-md);
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      background: none;
-      border: none;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      font-family: var(--font-sans);
-      margin-bottom: -1px;
-    }
-    .app-tabs__tab:hover { color: var(--text); }
-    .app-tabs__tab.is-active {
-      color: var(--green-base);
-      border-bottom-color: var(--green-base);
-      font-weight: 500;
-    }
-    .app-tab-panels {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .app-tab-panel {
-      display: none;
-      flex: 1;
-      min-height: 0;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .app-tab-panel.is-active {
-      display: flex;
-    }
+      /* ========== Tabs (left panel) ========== */
+      .app-tabs {
+        flex-shrink: 0;
+        display: flex;
+        gap: 0;
+        border-bottom: 1px solid var(--border);
+        padding: 0 var(--space-lg);
+        background: var(--gray-1);
+      }
+      .app-tabs__tab {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        background: none;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        font-family: var(--font-sans);
+        margin-bottom: -1px;
+      }
+      .app-tabs__tab:hover {
+        color: var(--text);
+      }
+      .app-tabs__tab.is-active {
+        color: var(--green-base);
+        border-bottom-color: var(--green-base);
+        font-weight: 500;
+      }
+      .app-tab-panels {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .app-tab-panel {
+        display: none;
+        flex: 1;
+        min-height: 0;
+        flex-direction: column;
+        overflow: hidden;
+      }
+      .app-tab-panel.is-active {
+        display: flex;
+      }
 
-    /* ========== Main content (left panel) ========== */
-    .app-main {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      max-width: 720px;
-      width: 100%;
-      margin: 0 auto;
-      padding: var(--space-md) var(--space-lg) var(--space-md);
-    }
+      /* ========== Main content (left panel) ========== */
+      .app-main {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        max-width: 720px;
+        width: 100%;
+        margin: 0 auto;
+        padding: var(--space-md) var(--space-lg) var(--space-md);
+      }
 
-    /* ========== Messages list ========== */
-    .messages {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      padding: var(--space-sm) 0;
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-md);
-    }
-    .message {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-xs);
-    }
-    .message__role {
-      font-size: 0.6875rem;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-    }
-    .message--user .message__role { color: var(--green-base); }
-    .message--assistant .message__role { color: var(--blue-base); }
-    .message__content {
-      font-size: 0.9375rem;
-      line-height: 1.5;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .message__recalled {
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      background: var(--gray-2);
-      padding: var(--space-sm) var(--space-md);
-      border-radius: var(--radius);
-      margin-top: var(--space-sm);
-    }
+      /* ========== Messages list ========== */
+      .messages {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        padding: var(--space-sm) 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-md);
+      }
+      .message {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-xs);
+      }
+      .message__role {
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      .message--user .message__role {
+        color: var(--green-base);
+      }
+      .message--assistant .message__role {
+        color: var(--blue-base);
+      }
+      .message__content {
+        font-size: 0.9375rem;
+        line-height: 1.5;
+        white-space: pre-wrap;
+        word-break: break-word;
+      }
+      .message__recalled {
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        background: var(--gray-2);
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius);
+        margin-top: var(--space-sm);
+      }
 
-    /* ========== Input area ========== */
-    .input-area {
-      flex-shrink: 0;
-      display: flex;
-      gap: var(--space-sm);
-      align-items: stretch;
-      margin-top: var(--space-sm);
-    }
-    .input-area__field {
-      flex: 1;
-      min-height: 40px;
-      font-family: inherit;
-      font-size: 0.9375rem;
-      padding: var(--space-sm) var(--space-md);
-      background: var(--gray-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-      resize: none;
-    }
-    .input-area__field:focus {
-      outline: none;
-      border-color: var(--green-base);
-    }
-    .input-area__submit {
-      min-height: 40px;
-      padding: 0 var(--space-md);
-      font-weight: 500;
-      font-family: var(--font-sans);
-      font-size: 0.9375rem;
-      background: var(--green-base);
-      color: #fff;
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-    }
-    .input-area__submit:hover { background: var(--green-hover); }
-    .input-area__submit:disabled { opacity: 0.6; cursor: not-allowed; }
+      /* ========== Input area ========== */
+      .input-area {
+        flex-shrink: 0;
+        display: flex;
+        gap: var(--space-sm);
+        align-items: stretch;
+        margin-top: var(--space-sm);
+      }
+      .input-area__field {
+        flex: 1;
+        min-height: 40px;
+        font-family: inherit;
+        font-size: 0.9375rem;
+        padding: var(--space-sm) var(--space-md);
+        background: var(--gray-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+        resize: none;
+      }
+      .input-area__field:focus {
+        outline: none;
+        border-color: var(--green-base);
+      }
+      .input-area__submit {
+        min-height: 40px;
+        padding: 0 var(--space-md);
+        font-weight: 500;
+        font-family: var(--font-sans);
+        font-size: 0.9375rem;
+        background: var(--green-base);
+        color: #fff;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+      }
+      .input-area__submit:hover {
+        background: var(--green-hover);
+      }
+      .input-area__submit:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
 
-    /* ========== Status bar ========== */
-    .status-bar {
-      flex-shrink: 0;
-      min-height: 1.25em;
-      margin: var(--space-sm) 0 0;
-      font-size: 0.8125rem;
-      color: var(--text-muted);
-      font-family: var(--font-mono);
-    }
-    .status-bar--error { color: var(--red-base); }
+      /* ========== Status bar ========== */
+      .status-bar {
+        flex-shrink: 0;
+        min-height: 1.25em;
+        margin: var(--space-sm) 0 0;
+        font-size: 0.8125rem;
+        color: var(--text-muted);
+        font-family: var(--font-mono);
+      }
+      .status-bar--error {
+        color: var(--red-base);
+      }
 
-    .status-bar .chat-api-url {
-      display: inline;
-      margin: 0;
-      font-size: inherit;
-      color: inherit;
-      font-family: inherit;
-      word-break: break-all;
-    }
+      .status-bar .chat-api-url {
+        display: inline;
+        margin: 0;
+        font-size: inherit;
+        color: inherit;
+        font-family: inherit;
+        word-break: break-all;
+      }
 
-    /* ========== Log panel (right panel) ========== */
-    .log-panel {
-      flex: 1;
-      min-height: 0;
-      display: flex;
-      flex-direction: column;
-      padding: var(--space-sm);
-    }
-    .log-panel__title {
-      flex-shrink: 0;
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: var(--space-sm);
-    }
-    .log-panel__content {
-      flex: 1;
-      min-height: 0;
-      overflow: auto;
-      font-family: var(--font-mono);
-      font-size: 0.75rem;
-      line-height: 1.4;
-      color: var(--gray-6);
-      background: var(--gray-0);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-sm);
-      white-space: pre-wrap;
-      word-break: break-all;
-    }
+      /* ========== Log panel (right panel) ========== */
+      .log-panel {
+        flex: 1;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        padding: var(--space-sm);
+      }
+      .log-panel__title {
+        flex-shrink: 0;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: var(--space-sm);
+      }
+      .log-panel__content {
+        flex: 1;
+        min-height: 0;
+        overflow: auto;
+        font-family: var(--font-mono);
+        font-size: 0.75rem;
+        line-height: 1.4;
+        color: var(--gray-6);
+        background: var(--gray-0);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--space-sm);
+        white-space: pre-wrap;
+        word-break: break-all;
+      }
 
-    /* ========== 记忆管理 / 短期与过程记忆 表单 ========== */
-    .mem-section {
-      margin-bottom: var(--space-lg);
-    }
-    .mem-section__title {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.04em;
-      margin-bottom: var(--space-sm);
-    }
-    .mem-form {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-sm);
-      align-items: center;
-      margin-bottom: var(--space-sm);
-    }
-    .mem-form input[type="text"],
-    .mem-form input[type="number"],
-    .mem-form textarea {
-      font-family: var(--font-mono);
-      font-size: 0.8125rem;
-      padding: var(--space-sm);
-      background: var(--gray-2);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      color: var(--text);
-    }
-    .mem-form input:focus,
-    .mem-form textarea:focus {
-      outline: none;
-      border-color: var(--green-base);
-    }
-    .mem-form textarea { min-width: 200px; min-height: 44px; resize: vertical; }
-    .mem-result {
-      font-family: var(--font-mono);
-      font-size: 0.8125rem;
-      background: var(--gray-0);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: var(--space-md);
-      margin-top: var(--space-sm);
-      max-height: 200px;
-      overflow: auto;
-      white-space: pre-wrap;
-      word-break: break-word;
-      color: var(--gray-6);
-    }
-    .mem-result--error { border-color: var(--red-base); color: var(--red-base); }
-    .btn {
-      padding: var(--space-sm) var(--space-md);
-      font-size: 0.8125rem;
-      font-weight: 500;
-      border: none;
-      border-radius: var(--radius);
-      cursor: pointer;
-      font-family: var(--font-sans);
-    }
-    .btn--primary { background: var(--green-base); color: #fff; }
-    .btn--primary:hover { background: var(--green-hover); }
-    .btn--danger { background: var(--red-base); color: #fff; }
-    .btn--danger:hover { opacity: 0.9; }
-  </style>
-</head>
-<body>
-  <header class="app-header" role="banner">
-    <a class="app-header__logo" href="https://www.mongodb.com" target="_blank" rel="noopener noreferrer" aria-label="MongoDB">
-      <img src="https://www.mongodb.com/assets/images/global/favicon.ico" alt="MongoDB" width="28" height="28" />
-    </a>
-    <h1 class="app-header__title">开放世界 NPC 对话记忆</h1>
-    <div class="form-group">
-      <label for="backend-select">记忆后端</label>
-      <select id="backend-select" aria-label="记忆后端">
-        <option value="mongodb" selected>MongoDB</option>
-        <option value="postgres">PostgreSQL</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label for="user-id">玩家 ID</label>
-      <input type="text" id="user-id" value="player-1" aria-label="玩家 ID" />
-    </div>
-    <div class="form-group">
-      <label for="npc-id">当前 NPC</label>
-      <select id="npc-id" aria-label="当前 NPC" title="选择固定场景 NPC">
-        <option value="katheryne" selected>凯瑟琳 (Katheryne)</option>
-        <option value="beidou">北斗 (Beidou)</option>
-        <option value="albedo">阿贝多 (Albedo)</option>
-        <option value="zhongli">钟离 (Zhongli)</option>
-        <option value="hu_tao">胡桃 (Hu Tao)</option>
-        <option value="ayaka">神里绫华 (Ayaka)</option>
-      </select>
-    </div>
-    <div class="app-header__right">
-      <div class="form-group form-group--search-row">
-        <label class="form-group__check">
-          <input type="checkbox" id="recall-memory-vector" checked aria-label="启用记忆向量召回" />
-          记忆 - 向量查询
-        </label>
-        <select id="memory-vector-filter-mode" aria-label="记忆向量 pre-filter 或 post-filter" title="pre-filter：$vectorSearch 内过滤；post-filter：mem0 原生 search">
-          <option value="pre-filter" selected>pre-filter</option>
-          <option value="post-filter">post-filter</option>
-        </select>
-      </div>
-      <div class="form-group form-group--search-row">
-        <label class="form-group__check">
-          <input type="checkbox" id="recall-wiki-hybrid" checked aria-label="启用 wiki 混合查询" />
-          wiki - 混合查询
-        </label>
-        <select id="wiki-fusion" aria-label="wiki 混合 RSF 或 RRF">
-          <option value="RRF" selected>RRF</option>
-          <option value="RSF">RSF</option>
-        </select>
-        <label for="wiki-fts-weight">fts_weight（0~1）</label>
-        <input
-          type="number"
-          id="wiki-fts-weight"
-          value="0.3"
-          min="0"
-          max="1"
-          step="0.1"
-          inputmode="decimal"
-          placeholder="0.3"
-          aria-label="fts_weight，0～1 之间；右侧上下箭头每次增减 0.1"
-          title="取值范围 0～1。右侧上下箭头每点一次 ±0.1；也可直接输入该区间内任意数值。RSF 时参与融合；RRF 时后端忽略。"
+      /* ========== 记忆管理 / 短期与过程记忆 表单 ========== */
+      .mem-section {
+        margin-bottom: var(--space-lg);
+      }
+      .mem-section__title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: var(--space-sm);
+      }
+      .mem-form {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-sm);
+        align-items: center;
+        margin-bottom: var(--space-sm);
+      }
+      .mem-form input[type="text"],
+      .mem-form input[type="number"],
+      .mem-form textarea {
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        padding: var(--space-sm);
+        background: var(--gray-2);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        color: var(--text);
+      }
+      .mem-form input:focus,
+      .mem-form textarea:focus {
+        outline: none;
+        border-color: var(--green-base);
+      }
+      .mem-form textarea {
+        min-width: 200px;
+        min-height: 44px;
+        resize: vertical;
+      }
+      .mem-result {
+        font-family: var(--font-mono);
+        font-size: 0.8125rem;
+        background: var(--gray-0);
+        border: 1px solid var(--border);
+        border-radius: var(--radius);
+        padding: var(--space-md);
+        margin-top: var(--space-sm);
+        max-height: 200px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        color: var(--gray-6);
+      }
+      .mem-result--error {
+        border-color: var(--red-base);
+        color: var(--red-base);
+      }
+      .btn {
+        padding: var(--space-sm) var(--space-md);
+        font-size: 0.8125rem;
+        font-weight: 500;
+        border: none;
+        border-radius: var(--radius);
+        cursor: pointer;
+        font-family: var(--font-sans);
+      }
+      .btn--primary {
+        background: var(--green-base);
+        color: #fff;
+      }
+      .btn--primary:hover {
+        background: var(--green-hover);
+      }
+      .btn--danger {
+        background: var(--red-base);
+        color: #fff;
+      }
+      .btn--danger:hover {
+        opacity: 0.9;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="app-header" role="banner">
+      <a
+        class="app-header__logo"
+        href="https://www.mongodb.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="MongoDB"
+      >
+        <img
+          src="https://www.mongodb.com/assets/images/global/favicon.ico"
+          alt="MongoDB"
+          width="28"
+          height="28"
         />
+      </a>
+      <h1 class="app-header__title">开放世界 NPC 对话记忆</h1>
+      <div class="form-group">
+        <label for="backend-select">记忆后端</label>
+        <select id="backend-select" aria-label="记忆后端">
+          <option value="mongodb" selected>MongoDB</option>
+          <option value="postgres">PostgreSQL</option>
+        </select>
       </div>
-      <div class="form-group form-group--search-row app-header__use-reranker">
-        <label class="form-group__check">
-          <input type="checkbox" id="use-reranker" aria-label="对记忆向量召回与百科混合检索使用 MongoDB Voyage rerank" />
-          Voyage rerank
-        </label>
+      <div class="form-group">
+        <label for="user-id">玩家 ID</label>
+        <input type="text" id="user-id" value="player-1" aria-label="玩家 ID" />
       </div>
-    </div>
-  </header>
+      <div class="form-group">
+        <label for="npc-id">当前 NPC</label>
+        <select id="npc-id" aria-label="当前 NPC" title="选择固定场景 NPC">
+          <option value="katheryne" selected>凯瑟琳 (Katheryne)</option>
+          <option value="beidou">北斗 (Beidou)</option>
+          <option value="albedo">阿贝多 (Albedo)</option>
+          <option value="zhongli">钟离 (Zhongli)</option>
+          <option value="hu_tao">胡桃 (Hu Tao)</option>
+          <option value="ayaka">神里绫华 (Ayaka)</option>
+        </select>
+      </div>
+      <div class="app-header__right">
+        <div class="form-group form-group--search-row">
+          <label class="form-group__check">
+            <input
+              type="checkbox"
+              id="recall-memory-vector"
+              checked
+              aria-label="启用记忆向量召回"
+            />
+            记忆 - 向量查询
+          </label>
+          <select
+            id="memory-vector-filter-mode"
+            aria-label="记忆向量 pre-filter 或 post-filter"
+            title="pre-filter：$vectorSearch 内过滤；post-filter：mem0 原生 search"
+          >
+            <option value="pre-filter" selected>pre-filter</option>
+            <option value="post-filter">post-filter</option>
+          </select>
+        </div>
+        <div class="form-group form-group--search-row">
+          <label class="form-group__check">
+            <input
+              type="checkbox"
+              id="recall-wiki-hybrid"
+              checked
+              aria-label="启用 wiki 混合查询"
+            />
+            wiki - 混合查询
+          </label>
+          <select id="wiki-fusion" aria-label="wiki 混合 RSF 或 RRF">
+            <option value="RRF" selected>RRF</option>
+            <option value="RSF">RSF</option>
+          </select>
+          <label for="wiki-fts-weight">fts_weight（0~1）</label>
+          <input
+            type="number"
+            id="wiki-fts-weight"
+            value="0.3"
+            min="0"
+            max="1"
+            step="0.1"
+            inputmode="decimal"
+            placeholder="0.3"
+            aria-label="fts_weight，0～1 之间；右侧上下箭头每次增减 0.1"
+            title="取值范围 0～1。右侧上下箭头每点一次 ±0.1；也可直接输入该区间内任意数值。RSF 时参与融合；RRF 时后端忽略。"
+          />
+        </div>
+        <div class="form-group form-group--search-row app-header__use-reranker">
+          <label class="form-group__check">
+            <input
+              type="checkbox"
+              id="use-reranker"
+              aria-label="对记忆向量召回与百科混合检索使用 MongoDB Voyage rerank"
+            />
+            Voyage rerank
+          </label>
+        </div>
+      </div>
+    </header>
 
-  <div class="app-body">
-    <div class="app-panel-left">
-      <nav class="app-tabs" role="tablist" aria-label="功能选项卡">
-        <button type="button" class="app-tabs__tab is-active" data-tab="chat" role="tab" aria-selected="true">对话记忆</button>
-        <button type="button" class="app-tabs__tab" data-tab="memory-mgmt" role="tab" aria-selected="false">记忆管理</button>
-        <button type="button" class="app-tabs__tab" data-tab="short-proc" role="tab" aria-selected="false">短期与过程记忆</button>
-      </nav>
-      <div class="app-tab-panels">
-        <section class="app-tab-panel is-active" id="panel-chat" role="tabpanel">
-          <main class="app-main" role="main">
-            <div class="messages" id="messages" role="log" aria-live="polite" aria-label="对话消息列表"></div>
-            <div class="input-area">
-              <textarea
-                id="input"
-                class="input-area__field"
-                rows="1"
-                placeholder="以玩家身份与 NPC 对话，测试跨轮记忆…"
-                autocomplete="off"
-                aria-label="输入消息"
-              ></textarea>
-              <button type="button" id="send" class="input-area__submit" aria-label="发送">发送</button>
-            </div>
-            <p id="status-bar" class="status-bar" role="status" aria-live="polite">
-              <span id="status">记忆后端: MongoDB · LLM: DeepSeek</span><span class="status-bar__sep" aria-hidden="true"> · </span><span id="api-url" class="chat-api-url"></span>
-            </p>
-          </main>
-        </section>
-        <section class="app-tab-panel" id="panel-memory-mgmt" role="tabpanel">
-          <div class="app-main" style="max-width: 720px; margin: 0 auto; padding: var(--space-md) var(--space-lg); overflow: auto;">
-            <div class="mem-section">
-              <h2 class="mem-section__title">搜索记忆</h2>
-              <div class="mem-form">
-                <input type="text" id="mem-search-query" placeholder="搜索关键词" aria-label="搜索关键词" />
-                <input type="number" id="mem-search-limit" value="10" min="1" max="100" aria-label="条数" style="width: 64px;" />
-                <button type="button" id="mem-search-btn" class="btn btn--primary">搜索</button>
+    <div class="app-body">
+      <div class="app-panel-left">
+        <nav class="app-tabs" role="tablist" aria-label="功能选项卡">
+          <button
+            type="button"
+            class="app-tabs__tab is-active"
+            data-tab="chat"
+            role="tab"
+            aria-selected="true"
+          >
+            对话记忆
+          </button>
+          <button
+            type="button"
+            class="app-tabs__tab"
+            data-tab="memory-mgmt"
+            role="tab"
+            aria-selected="false"
+          >
+            记忆管理
+          </button>
+          <button
+            type="button"
+            class="app-tabs__tab"
+            data-tab="short-proc"
+            role="tab"
+            aria-selected="false"
+          >
+            短期与过程记忆
+          </button>
+        </nav>
+        <div class="app-tab-panels">
+          <section
+            class="app-tab-panel is-active"
+            id="panel-chat"
+            role="tabpanel"
+          >
+            <main class="app-main" role="main">
+              <div
+                class="messages"
+                id="messages"
+                role="log"
+                aria-live="polite"
+                aria-label="对话消息列表"
+              ></div>
+              <div class="input-area">
+                <textarea
+                  id="input"
+                  class="input-area__field"
+                  rows="1"
+                  placeholder="以玩家身份与 NPC 对话，测试跨轮记忆…"
+                  autocomplete="off"
+                  aria-label="输入消息"
+                ></textarea>
+                <button
+                  type="button"
+                  id="send"
+                  class="input-area__submit"
+                  aria-label="发送"
+                >
+                  发送
+                </button>
               </div>
-              <pre id="mem-search-result" class="mem-result" aria-live="polite"></pre>
-            </div>
-            <div class="mem-section">
-              <h2 class="mem-section__title">按玩家 ID 获取记忆</h2>
-              <div class="mem-form">
-                <input type="text" id="mem-by-user-id" placeholder="玩家 ID（留空用当前）" aria-label="玩家 ID" style="min-width: 140px;" />
-                <input type="text" id="mem-by-agent-id" placeholder="NPC：katheryne / beidou / albedo / zhongli / hu_tao / ayaka" aria-label="NPC ID" style="min-width: 220px;" />
-                <input type="number" id="mem-by-user-limit" value="100" min="1" max="500" aria-label="条数" style="width: 64px;" />
-                <button type="button" id="mem-by-user-btn" class="btn btn--primary">获取</button>
-              </div>
-              <pre id="mem-by-user-result" class="mem-result"></pre>
-            </div>
-            <div class="mem-section">
-              <h2 class="mem-section__title">按玩家 ID 删除记忆</h2>
-              <div class="mem-form">
-                <input type="text" id="mem-delete-all-user-id" placeholder="玩家 ID（留空用当前）" aria-label="玩家 ID" style="min-width: 140px;" />
-                <input type="text" id="mem-delete-all-agent-id" placeholder="NPC：katheryne / beidou / albedo / …" aria-label="NPC ID" style="min-width: 180px;" />
-                <button type="button" id="mem-delete-all-btn" class="btn btn--danger">删除该玩家下全部记忆</button>
-              </div>
-              <pre id="mem-delete-all-result" class="mem-result"></pre>
-            </div>
-          </div>
-        </section>
-        <section class="app-tab-panel" id="panel-short-proc" role="tabpanel">
-          <div class="app-main" style="max-width: 720px; margin: 0 auto; padding: var(--space-md) var(--space-lg); overflow: auto;">
-            <div class="mem-section" style="border: 1px solid var(--green-base); border-radius: var(--radius); padding: var(--space-md); background: rgba(19,170,82,0.06);">
-              <h2 class="mem-section__title" style="color: var(--green-base);">短期记忆保留设置</h2>
-              <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: var(--space-sm);">
-                设置对话中系统自动判定为"短期记忆"时的保留时间。保存后，对话过程中被判定为短期记忆的内容会在 payload 中写入 <code>expiration_time</code>（BSON Date 类型），值为当前时间 + 下方设定的天数。
+              <p
+                id="status-bar"
+                class="status-bar"
+                role="status"
+                aria-live="polite"
+              >
+                <span id="status">记忆后端: MongoDB · LLM: DeepSeek</span
+                ><span class="status-bar__sep" aria-hidden="true"> · </span
+                ><span id="api-url" class="chat-api-url"></span>
               </p>
-              <div class="mem-form">
-                <label for="short-term-retention-days" style="font-size: 0.8125rem; color: var(--text-muted);">短期记忆保留</label>
-                <input type="number" id="short-term-retention-days" value="7" min="1" max="365" aria-label="短期记忆保留天数" style="width: 72px;" />
-                <span style="font-size: 0.8125rem; color: var(--text-muted);">天</span>
-                <button type="button" id="short-term-retention-save-btn" class="btn btn--primary">保存设置</button>
-                <span id="short-term-retention-status" style="font-size: 0.8125rem; color: var(--green-base); margin-left: var(--space-sm);"></span>
+            </main>
+          </section>
+          <section class="app-tab-panel" id="panel-memory-mgmt" role="tabpanel">
+            <div
+              class="app-main"
+              style="
+                max-width: 720px;
+                margin: 0 auto;
+                padding: var(--space-md) var(--space-lg);
+                overflow: auto;
+              "
+            >
+              <div class="mem-section">
+                <h2 class="mem-section__title">搜索记忆</h2>
+                <div class="mem-form">
+                  <input
+                    type="text"
+                    id="mem-search-query"
+                    placeholder="搜索关键词"
+                    aria-label="搜索关键词"
+                  />
+                  <input
+                    type="number"
+                    id="mem-search-limit"
+                    value="10"
+                    min="1"
+                    max="100"
+                    aria-label="条数"
+                    style="width: 64px"
+                  />
+                  <button
+                    type="button"
+                    id="mem-search-btn"
+                    class="btn btn--primary"
+                  >
+                    搜索
+                  </button>
+                </div>
+                <pre
+                  id="mem-search-result"
+                  class="mem-result"
+                  aria-live="polite"
+                ></pre>
+              </div>
+              <div class="mem-section">
+                <h2 class="mem-section__title">按玩家 ID 获取记忆</h2>
+                <div class="mem-form">
+                  <input
+                    type="text"
+                    id="mem-by-user-id"
+                    placeholder="玩家 ID（留空用当前）"
+                    aria-label="玩家 ID"
+                    style="min-width: 140px"
+                  />
+                  <input
+                    type="text"
+                    id="mem-by-agent-id"
+                    placeholder="NPC：katheryne / beidou / albedo / zhongli / hu_tao / ayaka"
+                    aria-label="NPC ID"
+                    style="min-width: 220px"
+                  />
+                  <input
+                    type="number"
+                    id="mem-by-user-limit"
+                    value="100"
+                    min="1"
+                    max="500"
+                    aria-label="条数"
+                    style="width: 64px"
+                  />
+                  <button
+                    type="button"
+                    id="mem-by-user-btn"
+                    class="btn btn--primary"
+                  >
+                    获取
+                  </button>
+                </div>
+                <pre id="mem-by-user-result" class="mem-result"></pre>
+              </div>
+              <div class="mem-section">
+                <h2 class="mem-section__title">按玩家 ID 删除记忆</h2>
+                <div class="mem-form">
+                  <input
+                    type="text"
+                    id="mem-delete-all-user-id"
+                    placeholder="玩家 ID（留空用当前）"
+                    aria-label="玩家 ID"
+                    style="min-width: 140px"
+                  />
+                  <input
+                    type="text"
+                    id="mem-delete-all-agent-id"
+                    placeholder="NPC：katheryne / beidou / albedo / …"
+                    aria-label="NPC ID"
+                    style="min-width: 180px"
+                  />
+                  <button
+                    type="button"
+                    id="mem-delete-all-btn"
+                    class="btn btn--danger"
+                  >
+                    删除该玩家下全部记忆
+                  </button>
+                </div>
+                <pre id="mem-delete-all-result" class="mem-result"></pre>
               </div>
             </div>
-            <div class="mem-section">
-              <h2 class="mem-section__title">短期记忆（按会话 session_id）</h2>
-              <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: var(--space-sm);">Mem0 通过 session_id 区分短期会话记忆，适用于当前会话上下文、多步任务；会话结束可清空，不写长期库。</p>
-              <div class="mem-form">
-                <input type="text" id="session-id-input" placeholder="会话 ID（留空用当前页会话）" aria-label="session_id" style="min-width: 200px;" />
-                <textarea id="short-session-content" placeholder="本会话要记下的内容" aria-label="内容" rows="2" style="min-width: 180px;"></textarea>
-                <button type="button" id="short-session-add-btn" class="btn btn--primary">添加会话短期记忆</button>
+          </section>
+          <section class="app-tab-panel" id="panel-short-proc" role="tabpanel">
+            <div
+              class="app-main"
+              style="
+                max-width: 720px;
+                margin: 0 auto;
+                padding: var(--space-md) var(--space-lg);
+                overflow: auto;
+              "
+            >
+              <div
+                class="mem-section"
+                style="
+                  border: 1px solid var(--green-base);
+                  border-radius: var(--radius);
+                  padding: var(--space-md);
+                  background: rgba(19, 170, 82, 0.06);
+                "
+              >
+                <h2 class="mem-section__title" style="color: var(--green-base)">
+                  短期记忆保留设置
+                </h2>
+                <p
+                  style="
+                    font-size: 0.8125rem;
+                    color: var(--text-muted);
+                    margin-bottom: var(--space-sm);
+                  "
+                >
+                  设置对话中系统自动判定为"短期记忆"时的保留时间。保存后，对话过程中被判定为短期记忆的内容会在
+                  payload 中写入 <code>expiration_time</code>（BSON Date
+                  类型），值为当前时间 + 下方设定的天数。
+                </p>
+                <div class="mem-form">
+                  <label
+                    for="short-term-retention-days"
+                    style="font-size: 0.8125rem; color: var(--text-muted)"
+                    >短期记忆保留</label
+                  >
+                  <input
+                    type="number"
+                    id="short-term-retention-days"
+                    value="7"
+                    min="1"
+                    max="365"
+                    aria-label="短期记忆保留天数"
+                    style="width: 72px"
+                  />
+                  <span style="font-size: 0.8125rem; color: var(--text-muted)"
+                    >天</span
+                  >
+                  <button
+                    type="button"
+                    id="short-term-retention-save-btn"
+                    class="btn btn--primary"
+                  >
+                    保存设置
+                  </button>
+                  <span
+                    id="short-term-retention-status"
+                    style="
+                      font-size: 0.8125rem;
+                      color: var(--green-base);
+                      margin-left: var(--space-sm);
+                    "
+                  ></span>
+                </div>
               </div>
-              <div class="mem-form">
-                <button type="button" id="short-session-get-btn" class="btn btn--primary">获取当前会话记忆</button>
-                <button type="button" id="short-session-clear-btn" class="btn btn--danger">清空当前会话记忆</button>
+              <div class="mem-section">
+                <h2 class="mem-section__title">
+                  短期记忆（按会话 session_id）
+                </h2>
+                <p
+                  style="
+                    font-size: 0.8125rem;
+                    color: var(--text-muted);
+                    margin-bottom: var(--space-sm);
+                  "
+                >
+                  Mem0 通过 session_id
+                  区分短期会话记忆，适用于当前会话上下文、多步任务；会话结束可清空，不写长期库。
+                </p>
+                <div class="mem-form">
+                  <input
+                    type="text"
+                    id="session-id-input"
+                    placeholder="会话 ID（留空用当前页会话）"
+                    aria-label="session_id"
+                    style="min-width: 200px"
+                  />
+                  <textarea
+                    id="short-session-content"
+                    placeholder="本会话要记下的内容"
+                    aria-label="内容"
+                    rows="2"
+                    style="min-width: 180px"
+                  ></textarea>
+                  <button
+                    type="button"
+                    id="short-session-add-btn"
+                    class="btn btn--primary"
+                  >
+                    添加会话短期记忆
+                  </button>
+                </div>
+                <div class="mem-form">
+                  <button
+                    type="button"
+                    id="short-session-get-btn"
+                    class="btn btn--primary"
+                  >
+                    获取当前会话记忆
+                  </button>
+                  <button
+                    type="button"
+                    id="short-session-clear-btn"
+                    class="btn btn--danger"
+                  >
+                    清空当前会话记忆
+                  </button>
+                </div>
+                <pre id="short-session-result" class="mem-result"></pre>
               </div>
-              <pre id="short-session-result" class="mem-result"></pre>
+              <div class="mem-section">
+                <h2 class="mem-section__title">短期记忆（按过期时间）</h2>
+                <p
+                  style="
+                    font-size: 0.8125rem;
+                    color: var(--text-muted);
+                    margin-bottom: var(--space-sm);
+                  "
+                >
+                  说明：设置 expiration_date，如 7
+                  天后自动失效，适用于临时提醒。比如设置：「最近在吃药，不能喝酒。」「本周在出差，不在公司。」
+                </p>
+                <div class="mem-form">
+                  <textarea
+                    id="short-content"
+                    placeholder="记忆内容"
+                    aria-label="短期记忆内容"
+                    rows="2"
+                  ></textarea>
+                  <input
+                    type="number"
+                    id="short-expiration-days"
+                    value="7"
+                    min="1"
+                    max="365"
+                    aria-label="过期天数"
+                    style="width: 64px"
+                    title="N 天后过期"
+                  />
+                  <span style="font-size: 0.75rem; color: var(--text-muted)"
+                    >天后过期</span
+                  >
+                  <button
+                    type="button"
+                    id="short-add-btn"
+                    class="btn btn--primary"
+                  >
+                    添加短期记忆
+                  </button>
+                </div>
+                <pre id="short-add-result" class="mem-result"></pre>
+              </div>
+              <div class="mem-section">
+                <h2 class="mem-section__title">过程记忆（步骤、流程类）</h2>
+                <p
+                  style="
+                    font-size: 0.8125rem;
+                    color: var(--text-muted);
+                    margin-bottom: var(--space-sm);
+                  "
+                >
+                  说明：专门用来记「怎么做」的步骤和流程，并在需要时按步骤/流程被召回使用。比如设置：「部署步骤：1.
+                  测试 2. 构建 3. 推送」「任务流程：先找 A 再找 B」。
+                </p>
+                <div class="mem-form">
+                  <textarea
+                    id="proc-content"
+                    placeholder="例如：部署步骤 1. 跑测试 2. 构建镜像 3. 推送仓库…"
+                    aria-label="过程记忆内容"
+                    rows="2"
+                  ></textarea>
+                  <button
+                    type="button"
+                    id="proc-add-btn"
+                    class="btn btn--primary"
+                  >
+                    添加过程记忆
+                  </button>
+                </div>
+                <pre id="proc-add-result" class="mem-result"></pre>
+              </div>
             </div>
-            <div class="mem-section">
-              <h2 class="mem-section__title">短期记忆（按过期时间）</h2>
-              <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: var(--space-sm);">说明：设置 expiration_date，如 7 天后自动失效，适用于临时提醒。比如设置：「最近在吃药，不能喝酒。」「本周在出差，不在公司。」</p>
-              <div class="mem-form">
-                <textarea id="short-content" placeholder="记忆内容" aria-label="短期记忆内容" rows="2"></textarea>
-                <input type="number" id="short-expiration-days" value="7" min="1" max="365" aria-label="过期天数" style="width: 64px;" title="N 天后过期" />
-                <span style="font-size: 0.75rem; color: var(--text-muted);">天后过期</span>
-                <button type="button" id="short-add-btn" class="btn btn--primary">添加短期记忆</button>
-              </div>
-              <pre id="short-add-result" class="mem-result"></pre>
-            </div>
-            <div class="mem-section">
-              <h2 class="mem-section__title">过程记忆（步骤、流程类）</h2>
-              <p style="font-size: 0.8125rem; color: var(--text-muted); margin-bottom: var(--space-sm);">说明：专门用来记「怎么做」的步骤和流程，并在需要时按步骤/流程被召回使用。比如设置：「部署步骤：1. 测试 2. 构建 3. 推送」「任务流程：先找 A 再找 B」。</p>
-              <div class="mem-form">
-                <textarea id="proc-content" placeholder="例如：部署步骤 1. 跑测试 2. 构建镜像 3. 推送仓库…" aria-label="过程记忆内容" rows="2"></textarea>
-                <button type="button" id="proc-add-btn" class="btn btn--primary">添加过程记忆</button>
-              </div>
-              <pre id="proc-add-result" class="mem-result"></pre>
-            </div>
-          </div>
-        </section>
+          </section>
+        </div>
       </div>
+      <div
+        class="app-resizer"
+        id="resizer"
+        role="separator"
+        aria-label="拖拽调整左右宽度"
+      ></div>
+      <aside class="app-panel-right" id="log-panel" aria-label="服务端日志">
+        <div class="log-panel">
+          <div class="log-panel__title">服务端日志</div>
+          <pre id="log-content" class="log-panel__content" aria-live="polite">
+连接日志流中…</pre
+          >
+        </div>
+      </aside>
     </div>
-    <div class="app-resizer" id="resizer" role="separator" aria-label="拖拽调整左右宽度"></div>
-    <aside class="app-panel-right" id="log-panel" aria-label="服务端日志">
-      <div class="log-panel">
-        <div class="log-panel__title">服务端日志</div>
-        <pre id="log-content" class="log-panel__content" aria-live="polite">连接日志流中…</pre>
-      </div>
-    </aside>
-  </div>
 
-  <script>
-(function () {
-  "use strict";
+    <script>
+      (function () {
+        "use strict";
 
-  // ---------- Config ----------
-  const CONFIG = {
-    getApiBase() {
-      const u = new URL(location.href);
-      if (u.protocol === "file:" || !u.hostname) return "http://127.0.0.1:8000";
-      if (u.port === "5500" || u.port === "3000") return "http://127.0.0.1:8000";
-      return (u.origin.replace(/:\d+$/, "") || "http://127.0.0.1") + ":8000";
-    },
-  };
+        // ---------- Config ----------
+        const CONFIG = {
+          getApiBase() {
+            const u = new URL(location.href);
+            if (u.protocol === "file:" || !u.hostname)
+              return "http://127.0.0.1:8000";
+            if (u.port === "5500" || u.port === "3000")
+              return "http://127.0.0.1:8000";
+            return (
+              (u.origin.replace(/:\d+$/, "") || "http://127.0.0.1") + ":8000"
+            );
+          },
+        };
 
-  const API_BASE = CONFIG.getApiBase();
+        const API_BASE = CONFIG.getApiBase();
 
-  // ---------- Labels ----------
-  const LABELS = {
-    backend: (v) => v === "postgres" ? "PostgreSQL" : "MongoDB",
-  };
+        // ---------- Labels ----------
+        const LABELS = {
+          backend: (v) => (v === "postgres" ? "PostgreSQL" : "MongoDB"),
+        };
 
-  // ---------- DOM refs ----------
-  const refs = {
-    apiUrl: document.getElementById("api-url"),
-    backendSelect: document.getElementById("backend-select"),
-    messages: document.getElementById("messages"),
-    input: document.getElementById("input"),
-    send: document.getElementById("send"),
-    status: document.getElementById("status"),
-    userId: document.getElementById("user-id"),
-    npcId: document.getElementById("npc-id"),
-    recallMemoryVector: document.getElementById("recall-memory-vector"),
-    memoryVectorFilterMode: document.getElementById("memory-vector-filter-mode"),
-    recallWikiHybrid: document.getElementById("recall-wiki-hybrid"),
-    wikiFusion: document.getElementById("wiki-fusion"),
-    wikiFtsWeight: document.getElementById("wiki-fts-weight"),
-    useReranker: document.getElementById("use-reranker"),
-    logContent: document.getElementById("log-content"),
-    memSearchQuery: document.getElementById("mem-search-query"),
-    memSearchLimit: document.getElementById("mem-search-limit"),
-    memSearchBtn: document.getElementById("mem-search-btn"),
-    memSearchResult: document.getElementById("mem-search-result"),
-    memByUserId: document.getElementById("mem-by-user-id"),
-    memByAgentId: document.getElementById("mem-by-agent-id"),
-    memByUserLimit: document.getElementById("mem-by-user-limit"),
-    memByUserBtn: document.getElementById("mem-by-user-btn"),
-    memByUserResult: document.getElementById("mem-by-user-result"),
-    memDeleteAllUserId: document.getElementById("mem-delete-all-user-id"),
-    memDeleteAllAgentId: document.getElementById("mem-delete-all-agent-id"),
-    memDeleteAllBtn: document.getElementById("mem-delete-all-btn"),
-    memDeleteAllResult: document.getElementById("mem-delete-all-result"),
-    sessionIdInput: document.getElementById("session-id-input"),
-    shortSessionContent: document.getElementById("short-session-content"),
-    shortSessionAddBtn: document.getElementById("short-session-add-btn"),
-    shortSessionGetBtn: document.getElementById("short-session-get-btn"),
-    shortSessionClearBtn: document.getElementById("short-session-clear-btn"),
-    shortSessionResult: document.getElementById("short-session-result"),
-    shortContent: document.getElementById("short-content"),
-    shortExpirationDays: document.getElementById("short-expiration-days"),
-    shortAddBtn: document.getElementById("short-add-btn"),
-    shortAddResult: document.getElementById("short-add-result"),
-    procContent: document.getElementById("proc-content"),
-    procAddBtn: document.getElementById("proc-add-btn"),
-    procAddResult: document.getElementById("proc-add-result"),
-    shortTermRetentionDays: document.getElementById("short-term-retention-days"),
-    shortTermRetentionSaveBtn: document.getElementById("short-term-retention-save-btn"),
-    shortTermRetentionStatus: document.getElementById("short-term-retention-status"),
-  };
+        // ---------- DOM refs ----------
+        const refs = {
+          apiUrl: document.getElementById("api-url"),
+          backendSelect: document.getElementById("backend-select"),
+          messages: document.getElementById("messages"),
+          input: document.getElementById("input"),
+          send: document.getElementById("send"),
+          status: document.getElementById("status"),
+          userId: document.getElementById("user-id"),
+          npcId: document.getElementById("npc-id"),
+          recallMemoryVector: document.getElementById("recall-memory-vector"),
+          memoryVectorFilterMode: document.getElementById(
+            "memory-vector-filter-mode",
+          ),
+          recallWikiHybrid: document.getElementById("recall-wiki-hybrid"),
+          wikiFusion: document.getElementById("wiki-fusion"),
+          wikiFtsWeight: document.getElementById("wiki-fts-weight"),
+          useReranker: document.getElementById("use-reranker"),
+          logContent: document.getElementById("log-content"),
+          memSearchQuery: document.getElementById("mem-search-query"),
+          memSearchLimit: document.getElementById("mem-search-limit"),
+          memSearchBtn: document.getElementById("mem-search-btn"),
+          memSearchResult: document.getElementById("mem-search-result"),
+          memByUserId: document.getElementById("mem-by-user-id"),
+          memByAgentId: document.getElementById("mem-by-agent-id"),
+          memByUserLimit: document.getElementById("mem-by-user-limit"),
+          memByUserBtn: document.getElementById("mem-by-user-btn"),
+          memByUserResult: document.getElementById("mem-by-user-result"),
+          memDeleteAllUserId: document.getElementById("mem-delete-all-user-id"),
+          memDeleteAllAgentId: document.getElementById(
+            "mem-delete-all-agent-id",
+          ),
+          memDeleteAllBtn: document.getElementById("mem-delete-all-btn"),
+          memDeleteAllResult: document.getElementById("mem-delete-all-result"),
+          sessionIdInput: document.getElementById("session-id-input"),
+          shortSessionContent: document.getElementById("short-session-content"),
+          shortSessionAddBtn: document.getElementById("short-session-add-btn"),
+          shortSessionGetBtn: document.getElementById("short-session-get-btn"),
+          shortSessionClearBtn: document.getElementById(
+            "short-session-clear-btn",
+          ),
+          shortSessionResult: document.getElementById("short-session-result"),
+          shortContent: document.getElementById("short-content"),
+          shortExpirationDays: document.getElementById("short-expiration-days"),
+          shortAddBtn: document.getElementById("short-add-btn"),
+          shortAddResult: document.getElementById("short-add-result"),
+          procContent: document.getElementById("proc-content"),
+          procAddBtn: document.getElementById("proc-add-btn"),
+          procAddResult: document.getElementById("proc-add-result"),
+          shortTermRetentionDays: document.getElementById(
+            "short-term-retention-days",
+          ),
+          shortTermRetentionSaveBtn: document.getElementById(
+            "short-term-retention-save-btn",
+          ),
+          shortTermRetentionStatus: document.getElementById(
+            "short-term-retention-status",
+          ),
+        };
 
-  function getBackend() { return refs.backendSelect ? refs.backendSelect.value : "mongodb"; }
-  function getUserId() { return (refs.userId && refs.userId.value.trim()) || "player-1"; }
-  function getNpcId() { return (refs.npcId && refs.npcId.value.trim()) || "katheryne"; }
+        function getBackend() {
+          return refs.backendSelect ? refs.backendSelect.value : "mongodb";
+        }
+        function getUserId() {
+          return (refs.userId && refs.userId.value.trim()) || "player-1";
+        }
+        function getNpcId() {
+          return (refs.npcId && refs.npcId.value.trim()) || "katheryne";
+        }
 
-  function getWikiFtsWeight() {
-    var el = refs.wikiFtsWeight;
-    var raw = el ? String(el.value).trim() : "";
-    var v = raw === "" ? NaN : parseFloat(raw);
-    if (isNaN(v)) v = 0.3;
-    if (v < 0) v = 0;
-    if (v > 1) v = 1;
-    return v;
-  }
+        function getWikiFtsWeight() {
+          var el = refs.wikiFtsWeight;
+          var raw = el ? String(el.value).trim() : "";
+          var v = raw === "" ? NaN : parseFloat(raw);
+          if (isNaN(v)) v = 0.3;
+          if (v < 0) v = 0;
+          if (v > 1) v = 1;
+          return v;
+        }
 
-  /** 将输入框限制在 [0,1]（箭头步进 0.1 由 step 属性控制） */
-  function clampWikiFtsWeightField() {
-    var el = refs.wikiFtsWeight;
-    if (!el) return;
-    var raw = String(el.value).trim();
-    if (raw === "") return;
-    var v = parseFloat(raw);
-    if (isNaN(v)) return;
-    if (v > 1) el.value = "1";
-    else if (v < 0) el.value = "0";
-  }
+        /** 将输入框限制在 [0,1]（箭头步进 0.1 由 step 属性控制） */
+        function clampWikiFtsWeightField() {
+          var el = refs.wikiFtsWeight;
+          if (!el) return;
+          var raw = String(el.value).trim();
+          if (raw === "") return;
+          var v = parseFloat(raw);
+          if (isNaN(v)) return;
+          if (v > 1) el.value = "1";
+          else if (v < 0) el.value = "0";
+        }
 
-  function saveWikiFtsWeightToStorage() {
-    try {
-      if (refs.wikiFtsWeight) localStorage.setItem("mem0_wiki_fts_weight", String(refs.wikiFtsWeight.value.trim()));
-    } catch (_) {}
-  }
-
-  function loadWikiFtsWeightFromStorage() {
-    try {
-      var saved = localStorage.getItem("mem0_wiki_fts_weight");
-      if (!saved || !refs.wikiFtsWeight) return;
-      var v = parseFloat(saved);
-      if (!isNaN(v)) {
-        refs.wikiFtsWeight.value = String(saved);
-      }
-    } catch (_) {}
-  }
-  /** 获取用户设定的短期记忆保留天数 */
-  function getShortTermRetentionDays() {
-    var val = parseInt(refs.shortTermRetentionDays && refs.shortTermRetentionDays.value, 10);
-    if (isNaN(val) || val < 1) val = 7;
-    if (val > 365) val = 365;
-    return val;
-  }
-  /** 保存短期记忆保留天数到 localStorage */
-  function saveShortTermRetentionDays() {
-    var days = getShortTermRetentionDays();
-    try { localStorage.setItem("mem0_short_term_retention_days", String(days)); } catch (_) {}
-    if (refs.shortTermRetentionStatus) {
-      refs.shortTermRetentionStatus.textContent = "已保存：" + days + " 天";
-      setTimeout(function () { refs.shortTermRetentionStatus.textContent = ""; }, 3000);
-    }
-  }
-  /** 从 localStorage 恢复短期记忆保留天数 */
-  function loadShortTermRetentionDays() {
-    try {
-      var saved = localStorage.getItem("mem0_short_term_retention_days");
-      if (saved && refs.shortTermRetentionDays) {
-        var val = parseInt(saved, 10);
-        if (!isNaN(val) && val >= 1 && val <= 365) refs.shortTermRetentionDays.value = val;
-      }
-    } catch (_) {}
-  }
-  /** 与对话接口一致：使用当前所选固定 NPC 的 agent_id（默认 Katheryne） */
-  function getAgentIdForStorage() { return getNpcId(); }
-  function getCurrentSessionId() {
-    var sid = refs.sessionIdInput && refs.sessionIdInput.value.trim();
-    if (sid) return sid;
-    try {
-      var key = "mem0_session_id";
-      if (typeof sessionStorage !== "undefined" && sessionStorage.getItem(key)) return sessionStorage.getItem(key);
-      sid = "session-" + Date.now() + "-" + Math.random().toString(36).slice(2, 10);
-      sessionStorage.setItem(key, sid);
-      if (refs.sessionIdInput) refs.sessionIdInput.placeholder = "当前会话: " + sid;
-      return sid;
-    } catch (_) {
-      return "session-" + Date.now();
-    }
-  }
-
-  /** 与后端 conversation_history 对齐：已完成的 user/assistant 轮次（不含正在发送的当前句） */
-  var sessionChatHistory = [];
-  var lastChatSessionKey = null;
-
-  function getChatSessionKey() {
-    return (typeof getCurrentSessionId === "function" ? getCurrentSessionId() : "") || "";
-  }
-
-  function ensureChatHistoryForSession() {
-    var k = getChatSessionKey();
-    if (lastChatSessionKey === null) {
-      lastChatSessionKey = k;
-      return;
-    }
-    if (lastChatSessionKey !== k) {
-      sessionChatHistory = [];
-      lastChatSessionKey = k;
-    }
-  }
-
-  function resetChatHistoryForCurrentSession() {
-    sessionChatHistory = [];
-    lastChatSessionKey = getChatSessionKey();
-  }
-
-  // ---------- Status ----------
-  function setStatus(text, isError = false) {
-    const line = document.getElementById("status");
-    const bar = document.getElementById("status-bar");
-    if (line) {
-      line.textContent = text;
-    }
-    if (bar) {
-      bar.classList.toggle("status-bar--error", isError);
-    }
-  }
-
-  function getStatusLine(prefix = "") {
-    const backend = refs.backendSelect ? refs.backendSelect.value : "mongodb";
-    const p = prefix ? prefix + " · " : "";
-    return p + "记忆后端: " + LABELS.backend(backend) + " · LLM: DeepSeek";
-  }
-
-  // ---------- Messages ----------
-  function escapeHtml(s) {
-    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
-  }
-
-  /** 与后端 memory_type_this_turn 对齐：long_term / short_term / zero_term */
-  function memoryTypeLabelZh(t) {
-    if (t === "short_term") return "1. 系统判定为: 短期记忆";
-    if (t === "zero_term") return "1. 系统判定为: 零记忆";
-    if (t === "long_term") return "1. 系统判定为: 长期记忆";
-    return "1. 系统判定为: 长期记忆";
-  }
-
-  function appendMessage(role, content, recalled, memoryTypeThisTurn) {
-    if (recalled === undefined) recalled = [];
-    const div = document.createElement("div");
-    div.className = "message message--" + role;
-    div.setAttribute("data-role", role);
-    const roleLabel = role === "user" ? "玩家" : "NPC";
-    var recalledHtml = "";
-    if (role === "assistant" && (memoryTypeThisTurn || recalled.length)) {
-      var label = memoryTypeLabelZh(memoryTypeThisTurn);
-      recalledHtml = "<div class=\"message__recalled\"><strong>" + label + "<br>"+ "2. 本轮 NPC 召回的数据如下：</strong><br>" +
-        (recalled.length ? recalled.map(function (m) { return "— " + escapeHtml(m); }).join("<br>") : "（无）") + "</div>";
-    } else if (recalled.length) {
-      recalledHtml = "<div class=\"message__recalled\"><strong>本轮 NPC 召回的记忆:</strong><br>" +
-        recalled.map(function (m) { return "— " + escapeHtml(m); }).join("<br>") + "</div>";
-    }
-    div.innerHTML =
-      "<span class=\"message__role\">" + roleLabel + "</span>" +
-      "<span class=\"message__content\"></span>" + recalledHtml;
-    div.querySelector(".message__content").textContent = content;
-    refs.messages.appendChild(div);
-    refs.messages.scrollTop = refs.messages.scrollHeight;
-  }
-
-  // ---------- API ----------
-  async function checkHealth() {
-    try {
-      const r = await fetch(API_BASE + "/health", { method: "GET" });
-      if (r.ok) {
-        setStatus(getStatusLine("已连接"), false);
-      } else {
-        setStatus(getStatusLine("后端异常 " + r.status), true);
-      }
-    } catch (_) {
-      setStatus(getStatusLine("未连接"), true);
-    }
-  }
-
-  async function sendChat() {
-    const text = refs.input.value.trim();
-    if (!text) return;
-
-    ensureChatHistoryForSession();
-
-    refs.input.value = "";
-    refs.send.disabled = true;
-    appendMessage("user", text);
-    setStatus("请求中…");
-
-    try {
-      const res = await fetch(API_BASE + "/chat", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: text,
-          user_id: refs.userId.value.trim() || "player-1",
-          npc_id: getNpcId(),
-          session_id: typeof getCurrentSessionId === "function" ? getCurrentSessionId() : null,
-          backend: refs.backendSelect.value,
-          short_term_expiration_days: getShortTermRetentionDays(),
-          recall_memory_vector: !!(refs.recallMemoryVector && refs.recallMemoryVector.checked),
-          memory_vector_filter_mode: (refs.memoryVectorFilterMode && refs.memoryVectorFilterMode.value) || "pre-filter",
-          recall_wiki_hybrid: !!(refs.recallWikiHybrid && refs.recallWikiHybrid.checked),
-          wiki_fusion: (refs.wikiFusion && refs.wikiFusion.value) || "RRF",
-          wiki_fts_weight: getWikiFtsWeight(),
-          use_reranker: !!(refs.useReranker && refs.useReranker.checked),
-          conversation_history: sessionChatHistory,
-        }),
-      });
-
-      let data;
-      try {
-        data = await res.json();
-      } catch (_) {
-        throw new Error("后端返回格式错误，请查看后端终端日志");
-      }
-      if (!res.ok) throw new Error(data.detail || res.statusText || "请求失败");
-
-      sessionChatHistory.push({ role: "user", content: text });
-      sessionChatHistory.push({ role: "assistant", content: data.reply || "" });
-
-      appendMessage("assistant", data.reply, data.recalled_memories || [], data.memory_type_this_turn);
-      if (data.backend) refs.backendSelect.value = data.backend;
-      setStatus(getStatusLine());
-    } catch (e) {
-      const msg = e.message || String(e);
-      const friendly = /load failed|failed to fetch|networkerror/i.test(msg)
-        ? "无法连接后端，请确认已在 backend 目录运行 ./run.sh"
-        : msg;
-      setStatus("请求失败: " + friendly, true);
-      appendMessage("assistant", "[错误: " + friendly + "]");
-    } finally {
-      refs.send.disabled = false;
-    }
-  }
-
-  // ---------- Tabs ----------
-  function setupTabs() {
-    const tabs = document.querySelectorAll(".app-tabs__tab");
-    const panels = document.querySelectorAll(".app-tab-panel");
-    tabs.forEach(function (tab) {
-      tab.addEventListener("click", function () {
-        const name = tab.getAttribute("data-tab");
-        tabs.forEach(function (t) {
-          t.classList.remove("is-active");
-          t.setAttribute("aria-selected", "false");
-        });
-        panels.forEach(function (p) {
-          p.classList.remove("is-active");
-        });
-        tab.classList.add("is-active");
-        tab.setAttribute("aria-selected", "true");
-        const panel = document.getElementById("panel-" + name);
-        if (panel) panel.classList.add("is-active");
-      });
-    });
-  }
-
-  // ---------- 记忆管理 API ----------
-  function setResult(el, text, isError) {
-    if (!el) return;
-    el.textContent = text;
-    el.classList.toggle("mem-result--error", !!isError);
-  }
-  /** 包装 async handler：请求期间 disable 按钮，完成后恢复 */
-  function withButtonLock(btn, fn) {
-    return async function () {
-      if (btn) btn.disabled = true;
-      try { await fn(); } finally { if (btn) btn.disabled = false; }
-    };
-  }
-  async function memorySearch() {
-    const el = refs.memSearchResult;
-    if (!el) return;
-    const query = (refs.memSearchQuery && refs.memSearchQuery.value.trim()) || "";
-    if (!query) { setResult(el, "请输入搜索关键词", true); return; }
-    const limit = Math.min(100, Math.max(1, parseInt(refs.memSearchLimit && refs.memSearchLimit.value, 10) || 10));
-    setResult(el, "搜索中…");
-    try {
-      const r = await fetch(API_BASE + "/memory/search", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          query: query,
-          user_id: getUserId(),
-          agent_id: getNpcId(),
-          backend: getBackend(),
-          limit: limit,
-          use_reranker: !!(refs.useReranker && refs.useReranker.checked),
-        }),
-      });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      const results = data.results || [];
-      setResult(el, results.length ? JSON.stringify(results, null, 2) : "无结果");
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function memoryGetByUser() {
-    const el = refs.memByUserResult;
-    if (!el) return;
-    const userId = (refs.memByUserId && refs.memByUserId.value.trim()) || getUserId();
-    const limit = Math.min(500, Math.max(1, parseInt(refs.memByUserLimit && refs.memByUserLimit.value, 10) || 100));
-    setResult(el, "获取中…");
-    try {
-      const params = new URLSearchParams({ user_id: userId, backend: getBackend(), limit: String(limit) });
-      const agentId = (refs.memByAgentId && refs.memByAgentId.value.trim()) || getNpcId();
-      if (agentId) params.set("agent_id", agentId);
-      const r = await fetch(API_BASE + "/memory/by-user?" + params.toString());
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      const results = data.results || data;
-      setResult(el, Array.isArray(results) && results.length ? JSON.stringify(results, null, 2) : (typeof results === "object" ? JSON.stringify(data, null, 2) : "无结果"));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function memoryDeleteAllByUser() {
-    const el = refs.memDeleteAllResult;
-    if (!el) return;
-    const userId = (refs.memDeleteAllUserId && refs.memDeleteAllUserId.value.trim()) || getUserId();
-    setResult(el, "删除中…");
-    try {
-      const params = new URLSearchParams({ user_id: userId, backend: getBackend() });
-      const agentId = (refs.memDeleteAllAgentId && refs.memDeleteAllAgentId.value.trim()) || getNpcId();
-      if (agentId) params.set("agent_id", agentId);
-      const r = await fetch(API_BASE + "/memory?" + params.toString(), { method: "DELETE" });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      setResult(el, "已删除该玩家" + (agentId ? "（及该 NPC）" : "") + "下全部记忆");
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function shortSessionAdd() {
-    const el = refs.shortSessionResult;
-    if (!el) return;
-    const content = (refs.shortSessionContent && refs.shortSessionContent.value.trim()) || "";
-    if (!content) { setResult(el, "请输入记忆内容", true); return; }
-    const sessionId = getCurrentSessionId();
-    setResult(el, "添加中…");
-    try {
-      const r = await fetch(API_BASE + "/memory/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content,
-          user_id: getUserId(),
-          agent_id: getAgentIdForStorage(),
-          backend: getBackend(),
-          session_id: sessionId,
-        }),
-      });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      setResult(el, "已添加会话短期记忆（session_id=" + sessionId + "）:\n" + JSON.stringify(data, null, 2));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function shortSessionGet() {
-    const el = refs.shortSessionResult;
-    if (!el) return;
-    const sessionId = getCurrentSessionId();
-    setResult(el, "获取中…");
-    try {
-      const params = new URLSearchParams({ session_id: sessionId, backend: getBackend(), limit: "100" });
-      const uid = getUserId();
-      if (uid) params.set("user_id", uid);
-      const r = await fetch(API_BASE + "/memory/by-session?" + params.toString());
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      const results = data.results || data;
-      setResult(el, Array.isArray(results) && results.length ? JSON.stringify(results, null, 2) : (typeof results === "object" ? JSON.stringify(data, null, 2) : "当前会话无记忆"));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function shortSessionClear() {
-    const el = refs.shortSessionResult;
-    if (!el) return;
-    const sessionId = getCurrentSessionId();
-    setResult(el, "清空中…");
-    try {
-      const params = new URLSearchParams({ session_id: sessionId, backend: getBackend() });
-      const uid = getUserId();
-      if (uid) params.set("user_id", uid);
-      const r = await fetch(API_BASE + "/memory?" + params.toString(), { method: "DELETE" });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      setResult(el, "已清空当前会话记忆（session_id=" + sessionId + "）" + (data.deleted_count != null ? "，删除 " + data.deleted_count + " 条" : ""));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function shortTermAdd() {
-    const el = refs.shortAddResult;
-    if (!el) return;
-    const content = (refs.shortContent && refs.shortContent.value.trim()) || "";
-    if (!content) { setResult(el, "请输入记忆内容", true); return; }
-    const days = Math.min(365, Math.max(1, parseInt(refs.shortExpirationDays && refs.shortExpirationDays.value, 10) || 7));
-    setResult(el, "添加中…");
-    try {
-      const r = await fetch(API_BASE + "/memory/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content,
-          user_id: getUserId(),
-          agent_id: getAgentIdForStorage(),
-          backend: getBackend(),
-          expiration_days: days,
-        }),
-      });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      setResult(el, "已添加短期记忆（" + days + " 天后过期）:\n" + JSON.stringify(data, null, 2));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-  async function proceduralAdd() {
-    const el = refs.procAddResult;
-    if (!el) return;
-    const content = (refs.procContent && refs.procContent.value.trim()) || "";
-    if (!content) { setResult(el, "请输入过程记忆内容", true); return; }
-    setResult(el, "添加中…");
-    try {
-      const r = await fetch(API_BASE + "/memory/add", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          content: content,
-          user_id: getUserId(),
-          agent_id: getAgentIdForStorage(),
-          backend: getBackend(),
-          memory_type: "procedural_memory",
-        }),
-      });
-      const data = await r.json().catch(function () { return {}; });
-      if (!r.ok) { setResult(el, "错误: " + (data.detail || r.statusText), true); return; }
-      setResult(el, "已添加过程记忆:\n" + JSON.stringify(data, null, 2));
-    } catch (e) {
-      setResult(el, "请求失败: " + (e.message || String(e)), true);
-    }
-  }
-
-  // ---------- 拖拽调整左右面板宽度 ----------
-  function setupResizer() {
-    var body = document.querySelector(".app-body");
-    var resizer = document.getElementById("resizer");
-    var logPanel = document.getElementById("log-panel");
-    if (!body || !resizer || !logPanel) return;
-    var dragging = false;
-    resizer.addEventListener("mousedown", function (e) {
-      e.preventDefault();
-      dragging = true;
-    });
-    document.addEventListener("mousemove", function (e) {
-      if (!dragging) return;
-      var w = document.body.clientWidth - e.clientX;
-      if (w < 220) w = 220;
-      if (w > document.body.clientWidth * 0.8) w = document.body.clientWidth * 0.8;
-      body.style.setProperty("--log-panel-width", w + "px");
-    });
-    document.addEventListener("mouseup", function () {
-      dragging = false;
-    });
-  }
-
-  // ---------- Log stream (SSE)：输出完成后 1 秒内无新日志则追加换行分隔，再等下一批 ----------
-  function startLogStream() {
-    if (!refs.logContent) return;
-    const url = API_BASE + "/logs/stream";
-    var logSepTimer = null;
-    var LOG_IDLE_MS = 5000;
-    var reconnectDelay = 3000;
-    var maxReconnectDelay = 30000;
-
-    function appendLine(line) {
-      if (!refs.logContent) return;
-      var cur = refs.logContent.textContent;
-      refs.logContent.textContent = cur ? cur + "\n" + line : line;
-      refs.logContent.scrollTop = refs.logContent.scrollHeight;
-    }
-
-    function scheduleSeparator() {
-      if (logSepTimer) clearTimeout(logSepTimer);
-      logSepTimer = setTimeout(function () {
-        logSepTimer = null;
-        if (refs.logContent && refs.logContent.textContent)
-          refs.logContent.textContent += "\n\n";
-        refs.logContent.scrollTop = refs.logContent.scrollHeight;
-      }, LOG_IDLE_MS);
-    }
-
-    function connect() {
-      try {
-        const es = new EventSource(url);
-        var first = true;
-        es.onmessage = function (ev) {
+        function saveWikiFtsWeightToStorage() {
           try {
-            var data = JSON.parse(ev.data);
-            if (data.line !== undefined) {
-              if (first) {
-                refs.logContent.textContent = data.line;
-                first = false;
-              } else {
-                appendLine(data.line);
-              }
-              refs.logContent.scrollTop = refs.logContent.scrollHeight;
-              scheduleSeparator();
+            if (refs.wikiFtsWeight)
+              localStorage.setItem(
+                "mem0_wiki_fts_weight",
+                String(refs.wikiFtsWeight.value.trim()),
+              );
+          } catch (_) {}
+        }
+
+        function loadWikiFtsWeightFromStorage() {
+          try {
+            var saved = localStorage.getItem("mem0_wiki_fts_weight");
+            if (!saved || !refs.wikiFtsWeight) return;
+            var v = parseFloat(saved);
+            if (!isNaN(v)) {
+              refs.wikiFtsWeight.value = String(saved);
             }
           } catch (_) {}
-        };
-        es.onopen = function () {
-          reconnectDelay = 3000;
-          if (refs.logContent.textContent === "连接日志流中…") refs.logContent.textContent = "";
-        };
-        es.onerror = function () {
-          es.close();
-          if (logSepTimer) clearTimeout(logSepTimer);
-          appendLine("[日志流断开，" + Math.round(reconnectDelay / 1000) + "秒后重试…]");
-          setTimeout(connect, reconnectDelay);
-          reconnectDelay = Math.min(reconnectDelay * 2, maxReconnectDelay);
-        };
-      } catch (e) {
-        refs.logContent.textContent = "无法连接日志流: " + (e.message || String(e));
-      }
-    }
+        }
+        /** 获取用户设定的短期记忆保留天数 */
+        function getShortTermRetentionDays() {
+          var val = parseInt(
+            refs.shortTermRetentionDays && refs.shortTermRetentionDays.value,
+            10,
+          );
+          if (isNaN(val) || val < 1) val = 7;
+          if (val > 365) val = 365;
+          return val;
+        }
+        /** 保存短期记忆保留天数到 localStorage */
+        function saveShortTermRetentionDays() {
+          var days = getShortTermRetentionDays();
+          try {
+            localStorage.setItem(
+              "mem0_short_term_retention_days",
+              String(days),
+            );
+          } catch (_) {}
+          if (refs.shortTermRetentionStatus) {
+            refs.shortTermRetentionStatus.textContent =
+              "已保存：" + days + " 天";
+            setTimeout(function () {
+              refs.shortTermRetentionStatus.textContent = "";
+            }, 3000);
+          }
+        }
+        /** 从 localStorage 恢复短期记忆保留天数 */
+        function loadShortTermRetentionDays() {
+          try {
+            var saved = localStorage.getItem("mem0_short_term_retention_days");
+            if (saved && refs.shortTermRetentionDays) {
+              var val = parseInt(saved, 10);
+              if (!isNaN(val) && val >= 1 && val <= 365)
+                refs.shortTermRetentionDays.value = val;
+            }
+          } catch (_) {}
+        }
+        /** 与对话接口一致：使用当前所选固定 NPC 的 agent_id（默认 Katheryne） */
+        function getAgentIdForStorage() {
+          return getNpcId();
+        }
+        function getCurrentSessionId() {
+          var sid = refs.sessionIdInput && refs.sessionIdInput.value.trim();
+          if (sid) return sid;
+          try {
+            var key = "mem0_session_id";
+            if (
+              typeof sessionStorage !== "undefined" &&
+              sessionStorage.getItem(key)
+            )
+              return sessionStorage.getItem(key);
+            sid =
+              "session-" +
+              Date.now() +
+              "-" +
+              Math.random().toString(36).slice(2, 10);
+            sessionStorage.setItem(key, sid);
+            if (refs.sessionIdInput)
+              refs.sessionIdInput.placeholder = "当前会话: " + sid;
+            return sid;
+          } catch (_) {
+            return "session-" + Date.now();
+          }
+        }
 
-    connect();
-  }
+        /** 与后端 conversation_history 对齐：已完成的 user/assistant 轮次（不含正在发送的当前句） */
+        var sessionChatHistory = [];
+        var lastChatSessionKey = null;
 
-  // ---------- Init (run when DOM ready) ----------
-  function init() {
-    refs.apiUrl.textContent = "API: " + API_BASE;
-    setStatus(getStatusLine("加载中…"));
-    checkHealth();
-    setupResizer();
-    setupTabs();
-    startLogStream();
-    refs.backendSelect.addEventListener("change", () => setStatus(getStatusLine()));
-    refs.send.addEventListener("click", sendChat);
-    refs.input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        sendChat();
-      }
-    });
-    if (refs.memSearchBtn) refs.memSearchBtn.addEventListener("click", withButtonLock(refs.memSearchBtn, memorySearch));
-    if (refs.memByUserBtn) refs.memByUserBtn.addEventListener("click", withButtonLock(refs.memByUserBtn, memoryGetByUser));
-    if (refs.memDeleteAllBtn) refs.memDeleteAllBtn.addEventListener("click", withButtonLock(refs.memDeleteAllBtn, memoryDeleteAllByUser));
-    if (refs.shortSessionAddBtn) refs.shortSessionAddBtn.addEventListener("click", withButtonLock(refs.shortSessionAddBtn, shortSessionAdd));
-    if (refs.shortSessionGetBtn) refs.shortSessionGetBtn.addEventListener("click", withButtonLock(refs.shortSessionGetBtn, shortSessionGet));
-    if (refs.shortSessionClearBtn) refs.shortSessionClearBtn.addEventListener("click", withButtonLock(refs.shortSessionClearBtn, shortSessionClear));
-    getCurrentSessionId();
-    if (refs.shortAddBtn) refs.shortAddBtn.addEventListener("click", withButtonLock(refs.shortAddBtn, shortTermAdd));
-    if (refs.procAddBtn) refs.procAddBtn.addEventListener("click", withButtonLock(refs.procAddBtn, proceduralAdd));
-    loadShortTermRetentionDays();
-    if (refs.shortTermRetentionSaveBtn) refs.shortTermRetentionSaveBtn.addEventListener("click", saveShortTermRetentionDays);
-    loadWikiFtsWeightFromStorage();
-    if (refs.wikiFtsWeight) {
-      refs.wikiFtsWeight.addEventListener("input", clampWikiFtsWeightField);
-      refs.wikiFtsWeight.addEventListener("change", saveWikiFtsWeightToStorage);
-      refs.wikiFtsWeight.addEventListener("blur", function () {
-        var w = getWikiFtsWeight();
-        refs.wikiFtsWeight.value = String(w);
-        saveWikiFtsWeightToStorage();
-      });
-    }
-    if (refs.npcId) {
-      refs.npcId.addEventListener("change", function () {
-        if (refs.messages) refs.messages.innerHTML = "";
-        resetChatHistoryForCurrentSession();
-      });
-    }
-    if (refs.sessionIdInput) {
-      refs.sessionIdInput.addEventListener("change", function () {
-        resetChatHistoryForCurrentSession();
-      });
-    }
-  }
+        function getChatSessionKey() {
+          return (
+            (typeof getCurrentSessionId === "function"
+              ? getCurrentSessionId()
+              : "") || ""
+          );
+        }
 
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", init);
-  } else {
-    init();
-  }
-})();
-  </script>
-</body>
+        function ensureChatHistoryForSession() {
+          var k = getChatSessionKey();
+          if (lastChatSessionKey === null) {
+            lastChatSessionKey = k;
+            return;
+          }
+          if (lastChatSessionKey !== k) {
+            sessionChatHistory = [];
+            lastChatSessionKey = k;
+          }
+        }
+
+        function resetChatHistoryForCurrentSession() {
+          sessionChatHistory = [];
+          lastChatSessionKey = getChatSessionKey();
+        }
+
+        // ---------- Status ----------
+        function setStatus(text, isError = false) {
+          const line = document.getElementById("status");
+          const bar = document.getElementById("status-bar");
+          if (line) {
+            line.textContent = text;
+          }
+          if (bar) {
+            bar.classList.toggle("status-bar--error", isError);
+          }
+        }
+
+        function getStatusLine(prefix = "") {
+          const backend = refs.backendSelect
+            ? refs.backendSelect.value
+            : "mongodb";
+          const p = prefix ? prefix + " · " : "";
+          return (
+            p + "记忆后端: " + LABELS.backend(backend) + " · LLM: DeepSeek"
+          );
+        }
+
+        // ---------- Messages ----------
+        function escapeHtml(s) {
+          return s
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+        }
+
+        /** 与后端 memory_type_this_turn 对齐：long_term / short_term / zero_term */
+        function memoryTypeLabelZh(t) {
+          if (t === "short_term") return "1. 系统判定为: 短期记忆";
+          if (t === "zero_term") return "1. 系统判定为: 零记忆";
+          if (t === "long_term") return "1. 系统判定为: 长期记忆";
+          return "1. 系统判定为: 长期记忆";
+        }
+
+        function appendMessage(role, content, recalled, memoryTypeThisTurn) {
+          if (recalled === undefined) recalled = [];
+          const div = document.createElement("div");
+          div.className = "message message--" + role;
+          div.setAttribute("data-role", role);
+          const roleLabel = role === "user" ? "玩家" : "NPC";
+          var recalledHtml = "";
+          if (role === "assistant" && (memoryTypeThisTurn || recalled.length)) {
+            var label = memoryTypeLabelZh(memoryTypeThisTurn);
+            recalledHtml =
+              '<div class="message__recalled"><strong>' +
+              label +
+              "<br>" +
+              "2. 本轮 NPC 召回的数据如下：</strong><br>" +
+              (recalled.length
+                ? recalled
+                    .map(function (m) {
+                      return "— " + escapeHtml(m);
+                    })
+                    .join("<br>")
+                : "（无）") +
+              "</div>";
+          } else if (recalled.length) {
+            recalledHtml =
+              '<div class="message__recalled"><strong>本轮 NPC 召回的记忆:</strong><br>' +
+              recalled
+                .map(function (m) {
+                  return "— " + escapeHtml(m);
+                })
+                .join("<br>") +
+              "</div>";
+          }
+          div.innerHTML =
+            '<span class="message__role">' +
+            roleLabel +
+            "</span>" +
+            '<span class="message__content"></span>' +
+            recalledHtml;
+          div.querySelector(".message__content").textContent = content;
+          refs.messages.appendChild(div);
+          refs.messages.scrollTop = refs.messages.scrollHeight;
+        }
+
+        // ---------- API ----------
+        async function checkHealth() {
+          try {
+            const r = await fetch(API_BASE + "/health", { method: "GET" });
+            if (r.ok) {
+              setStatus(getStatusLine("已连接"), false);
+            } else {
+              setStatus(getStatusLine("后端异常 " + r.status), true);
+            }
+          } catch (_) {
+            setStatus(getStatusLine("未连接"), true);
+          }
+        }
+
+        async function sendChat() {
+          const text = refs.input.value.trim();
+          if (!text) return;
+
+          ensureChatHistoryForSession();
+
+          refs.input.value = "";
+          refs.send.disabled = true;
+          appendMessage("user", text);
+          setStatus("请求中…");
+
+          try {
+            const res = await fetch(API_BASE + "/chat", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                message: text,
+                user_id: refs.userId.value.trim() || "player-1",
+                npc_id: getNpcId(),
+                session_id:
+                  typeof getCurrentSessionId === "function"
+                    ? getCurrentSessionId()
+                    : null,
+                backend: refs.backendSelect.value,
+                short_term_expiration_days: getShortTermRetentionDays(),
+                recall_memory_vector: !!(
+                  refs.recallMemoryVector && refs.recallMemoryVector.checked
+                ),
+                memory_vector_filter_mode:
+                  (refs.memoryVectorFilterMode &&
+                    refs.memoryVectorFilterMode.value) ||
+                  "pre-filter",
+                recall_wiki_hybrid: !!(
+                  refs.recallWikiHybrid && refs.recallWikiHybrid.checked
+                ),
+                wiki_fusion:
+                  (refs.wikiFusion && refs.wikiFusion.value) || "RRF",
+                wiki_fts_weight: getWikiFtsWeight(),
+                use_reranker: !!(refs.useReranker && refs.useReranker.checked),
+                conversation_history: sessionChatHistory,
+              }),
+            });
+
+            let data;
+            try {
+              data = await res.json();
+            } catch (_) {
+              throw new Error("后端返回格式错误，请查看后端终端日志");
+            }
+            if (!res.ok)
+              throw new Error(data.detail || res.statusText || "请求失败");
+
+            sessionChatHistory.push({ role: "user", content: text });
+            sessionChatHistory.push({
+              role: "assistant",
+              content: data.reply || "",
+            });
+
+            appendMessage(
+              "assistant",
+              data.reply,
+              data.recalled_memories || [],
+              data.memory_type_this_turn,
+            );
+            if (data.backend) refs.backendSelect.value = data.backend;
+            setStatus(getStatusLine());
+          } catch (e) {
+            const msg = e.message || String(e);
+            const friendly = /load failed|failed to fetch|networkerror/i.test(
+              msg,
+            )
+              ? "无法连接后端，请确认已在 backend 目录运行 ./run.sh"
+              : msg;
+            setStatus("请求失败: " + friendly, true);
+            appendMessage("assistant", "[错误: " + friendly + "]");
+          } finally {
+            refs.send.disabled = false;
+          }
+        }
+
+        // ---------- Tabs ----------
+        function setupTabs() {
+          const tabs = document.querySelectorAll(".app-tabs__tab");
+          const panels = document.querySelectorAll(".app-tab-panel");
+          tabs.forEach(function (tab) {
+            tab.addEventListener("click", function () {
+              const name = tab.getAttribute("data-tab");
+              tabs.forEach(function (t) {
+                t.classList.remove("is-active");
+                t.setAttribute("aria-selected", "false");
+              });
+              panels.forEach(function (p) {
+                p.classList.remove("is-active");
+              });
+              tab.classList.add("is-active");
+              tab.setAttribute("aria-selected", "true");
+              const panel = document.getElementById("panel-" + name);
+              if (panel) panel.classList.add("is-active");
+            });
+          });
+        }
+
+        // ---------- 记忆管理 API ----------
+        function setResult(el, text, isError) {
+          if (!el) return;
+          el.textContent = text;
+          el.classList.toggle("mem-result--error", !!isError);
+        }
+        /** 包装 async handler：请求期间 disable 按钮，完成后恢复 */
+        function withButtonLock(btn, fn) {
+          return async function () {
+            if (btn) btn.disabled = true;
+            try {
+              await fn();
+            } finally {
+              if (btn) btn.disabled = false;
+            }
+          };
+        }
+        async function memorySearch() {
+          const el = refs.memSearchResult;
+          if (!el) return;
+          const query =
+            (refs.memSearchQuery && refs.memSearchQuery.value.trim()) || "";
+          if (!query) {
+            setResult(el, "请输入搜索关键词", true);
+            return;
+          }
+          const limit = Math.min(
+            100,
+            Math.max(
+              1,
+              parseInt(refs.memSearchLimit && refs.memSearchLimit.value, 10) ||
+                10,
+            ),
+          );
+          setResult(el, "搜索中…");
+          try {
+            const r = await fetch(API_BASE + "/memory/search", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                query: query,
+                user_id: getUserId(),
+                agent_id: getNpcId(),
+                backend: getBackend(),
+                limit: limit,
+                use_reranker: !!(refs.useReranker && refs.useReranker.checked),
+              }),
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            const results = data.results || [];
+            setResult(
+              el,
+              results.length ? JSON.stringify(results, null, 2) : "无结果",
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function memoryGetByUser() {
+          const el = refs.memByUserResult;
+          if (!el) return;
+          const userId =
+            (refs.memByUserId && refs.memByUserId.value.trim()) || getUserId();
+          const limit = Math.min(
+            500,
+            Math.max(
+              1,
+              parseInt(refs.memByUserLimit && refs.memByUserLimit.value, 10) ||
+                100,
+            ),
+          );
+          setResult(el, "获取中…");
+          try {
+            const params = new URLSearchParams({
+              user_id: userId,
+              backend: getBackend(),
+              limit: String(limit),
+            });
+            const agentId =
+              (refs.memByAgentId && refs.memByAgentId.value.trim()) ||
+              getNpcId();
+            if (agentId) params.set("agent_id", agentId);
+            const r = await fetch(
+              API_BASE + "/memory/by-user?" + params.toString(),
+            );
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            const results = data.results || data;
+            setResult(
+              el,
+              Array.isArray(results) && results.length
+                ? JSON.stringify(results, null, 2)
+                : typeof results === "object"
+                  ? JSON.stringify(data, null, 2)
+                  : "无结果",
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function memoryDeleteAllByUser() {
+          const el = refs.memDeleteAllResult;
+          if (!el) return;
+          const userId =
+            (refs.memDeleteAllUserId && refs.memDeleteAllUserId.value.trim()) ||
+            getUserId();
+          setResult(el, "删除中…");
+          try {
+            const params = new URLSearchParams({
+              user_id: userId,
+              backend: getBackend(),
+            });
+            const agentId =
+              (refs.memDeleteAllAgentId &&
+                refs.memDeleteAllAgentId.value.trim()) ||
+              getNpcId();
+            if (agentId) params.set("agent_id", agentId);
+            const r = await fetch(API_BASE + "/memory?" + params.toString(), {
+              method: "DELETE",
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            setResult(
+              el,
+              "已删除该玩家" + (agentId ? "（及该 NPC）" : "") + "下全部记忆",
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function shortSessionAdd() {
+          const el = refs.shortSessionResult;
+          if (!el) return;
+          const content =
+            (refs.shortSessionContent &&
+              refs.shortSessionContent.value.trim()) ||
+            "";
+          if (!content) {
+            setResult(el, "请输入记忆内容", true);
+            return;
+          }
+          const sessionId = getCurrentSessionId();
+          setResult(el, "添加中…");
+          try {
+            const r = await fetch(API_BASE + "/memory/add", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: content,
+                user_id: getUserId(),
+                agent_id: getAgentIdForStorage(),
+                backend: getBackend(),
+                session_id: sessionId,
+              }),
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            setResult(
+              el,
+              "已添加会话短期记忆（session_id=" +
+                sessionId +
+                "）:\n" +
+                JSON.stringify(data, null, 2),
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function shortSessionGet() {
+          const el = refs.shortSessionResult;
+          if (!el) return;
+          const sessionId = getCurrentSessionId();
+          setResult(el, "获取中…");
+          try {
+            const params = new URLSearchParams({
+              session_id: sessionId,
+              backend: getBackend(),
+              limit: "100",
+            });
+            const uid = getUserId();
+            if (uid) params.set("user_id", uid);
+            const r = await fetch(
+              API_BASE + "/memory/by-session?" + params.toString(),
+            );
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            const results = data.results || data;
+            setResult(
+              el,
+              Array.isArray(results) && results.length
+                ? JSON.stringify(results, null, 2)
+                : typeof results === "object"
+                  ? JSON.stringify(data, null, 2)
+                  : "当前会话无记忆",
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function shortSessionClear() {
+          const el = refs.shortSessionResult;
+          if (!el) return;
+          const sessionId = getCurrentSessionId();
+          setResult(el, "清空中…");
+          try {
+            const params = new URLSearchParams({
+              session_id: sessionId,
+              backend: getBackend(),
+            });
+            const uid = getUserId();
+            if (uid) params.set("user_id", uid);
+            const r = await fetch(API_BASE + "/memory?" + params.toString(), {
+              method: "DELETE",
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            setResult(
+              el,
+              "已清空当前会话记忆（session_id=" +
+                sessionId +
+                "）" +
+                (data.deleted_count != null
+                  ? "，删除 " + data.deleted_count + " 条"
+                  : ""),
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function shortTermAdd() {
+          const el = refs.shortAddResult;
+          if (!el) return;
+          const content =
+            (refs.shortContent && refs.shortContent.value.trim()) || "";
+          if (!content) {
+            setResult(el, "请输入记忆内容", true);
+            return;
+          }
+          const days = Math.min(
+            365,
+            Math.max(
+              1,
+              parseInt(
+                refs.shortExpirationDays && refs.shortExpirationDays.value,
+                10,
+              ) || 7,
+            ),
+          );
+          setResult(el, "添加中…");
+          try {
+            const r = await fetch(API_BASE + "/memory/add", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: content,
+                user_id: getUserId(),
+                agent_id: getAgentIdForStorage(),
+                backend: getBackend(),
+                expiration_days: days,
+              }),
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            setResult(
+              el,
+              "已添加短期记忆（" +
+                days +
+                " 天后过期）:\n" +
+                JSON.stringify(data, null, 2),
+            );
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+        async function proceduralAdd() {
+          const el = refs.procAddResult;
+          if (!el) return;
+          const content =
+            (refs.procContent && refs.procContent.value.trim()) || "";
+          if (!content) {
+            setResult(el, "请输入过程记忆内容", true);
+            return;
+          }
+          setResult(el, "添加中…");
+          try {
+            const r = await fetch(API_BASE + "/memory/add", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                content: content,
+                user_id: getUserId(),
+                agent_id: getAgentIdForStorage(),
+                backend: getBackend(),
+                memory_type: "procedural_memory",
+              }),
+            });
+            const data = await r.json().catch(function () {
+              return {};
+            });
+            if (!r.ok) {
+              setResult(el, "错误: " + (data.detail || r.statusText), true);
+              return;
+            }
+            setResult(el, "已添加过程记忆:\n" + JSON.stringify(data, null, 2));
+          } catch (e) {
+            setResult(el, "请求失败: " + (e.message || String(e)), true);
+          }
+        }
+
+        // ---------- 拖拽调整左右面板宽度 ----------
+        function setupResizer() {
+          var body = document.querySelector(".app-body");
+          var resizer = document.getElementById("resizer");
+          var logPanel = document.getElementById("log-panel");
+          if (!body || !resizer || !logPanel) return;
+          var dragging = false;
+          resizer.addEventListener("mousedown", function (e) {
+            e.preventDefault();
+            dragging = true;
+          });
+          document.addEventListener("mousemove", function (e) {
+            if (!dragging) return;
+            var w = document.body.clientWidth - e.clientX;
+            if (w < 220) w = 220;
+            if (w > document.body.clientWidth * 0.8)
+              w = document.body.clientWidth * 0.8;
+            body.style.setProperty("--log-panel-width", w + "px");
+          });
+          document.addEventListener("mouseup", function () {
+            dragging = false;
+          });
+        }
+
+        // ---------- Log stream (SSE)：输出完成后 1 秒内无新日志则追加换行分隔，再等下一批 ----------
+        function startLogStream() {
+          if (!refs.logContent) return;
+          const url = API_BASE + "/logs/stream";
+          var logSepTimer = null;
+          var LOG_IDLE_MS = 5000;
+          var reconnectDelay = 3000;
+          var maxReconnectDelay = 30000;
+
+          function appendLine(line) {
+            if (!refs.logContent) return;
+            var cur = refs.logContent.textContent;
+            refs.logContent.textContent = cur ? cur + "\n" + line : line;
+            refs.logContent.scrollTop = refs.logContent.scrollHeight;
+          }
+
+          function scheduleSeparator() {
+            if (logSepTimer) clearTimeout(logSepTimer);
+            logSepTimer = setTimeout(function () {
+              logSepTimer = null;
+              if (refs.logContent && refs.logContent.textContent)
+                refs.logContent.textContent += "\n\n";
+              refs.logContent.scrollTop = refs.logContent.scrollHeight;
+            }, LOG_IDLE_MS);
+          }
+
+          function connect() {
+            try {
+              const es = new EventSource(url);
+              var first = true;
+              es.onmessage = function (ev) {
+                try {
+                  var data = JSON.parse(ev.data);
+                  if (data.line !== undefined) {
+                    if (first) {
+                      refs.logContent.textContent = data.line;
+                      first = false;
+                    } else {
+                      appendLine(data.line);
+                    }
+                    refs.logContent.scrollTop = refs.logContent.scrollHeight;
+                    scheduleSeparator();
+                  }
+                } catch (_) {}
+              };
+              es.onopen = function () {
+                reconnectDelay = 3000;
+                if (refs.logContent.textContent === "连接日志流中…")
+                  refs.logContent.textContent = "";
+              };
+              es.onerror = function () {
+                es.close();
+                if (logSepTimer) clearTimeout(logSepTimer);
+                appendLine(
+                  "[日志流断开，" +
+                    Math.round(reconnectDelay / 1000) +
+                    "秒后重试…]",
+                );
+                setTimeout(connect, reconnectDelay);
+                reconnectDelay = Math.min(
+                  reconnectDelay * 2,
+                  maxReconnectDelay,
+                );
+              };
+            } catch (e) {
+              refs.logContent.textContent =
+                "无法连接日志流: " + (e.message || String(e));
+            }
+          }
+
+          connect();
+        }
+
+        // ---------- Init (run when DOM ready) ----------
+        function init() {
+          refs.apiUrl.textContent = "API: " + API_BASE;
+          setStatus(getStatusLine("加载中…"));
+          checkHealth();
+          setupResizer();
+          setupTabs();
+          startLogStream();
+          refs.backendSelect.addEventListener("change", () =>
+            setStatus(getStatusLine()),
+          );
+          refs.send.addEventListener("click", sendChat);
+          refs.input.addEventListener("keydown", (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              sendChat();
+            }
+          });
+          if (refs.memSearchBtn)
+            refs.memSearchBtn.addEventListener(
+              "click",
+              withButtonLock(refs.memSearchBtn, memorySearch),
+            );
+          if (refs.memByUserBtn)
+            refs.memByUserBtn.addEventListener(
+              "click",
+              withButtonLock(refs.memByUserBtn, memoryGetByUser),
+            );
+          if (refs.memDeleteAllBtn)
+            refs.memDeleteAllBtn.addEventListener(
+              "click",
+              withButtonLock(refs.memDeleteAllBtn, memoryDeleteAllByUser),
+            );
+          if (refs.shortSessionAddBtn)
+            refs.shortSessionAddBtn.addEventListener(
+              "click",
+              withButtonLock(refs.shortSessionAddBtn, shortSessionAdd),
+            );
+          if (refs.shortSessionGetBtn)
+            refs.shortSessionGetBtn.addEventListener(
+              "click",
+              withButtonLock(refs.shortSessionGetBtn, shortSessionGet),
+            );
+          if (refs.shortSessionClearBtn)
+            refs.shortSessionClearBtn.addEventListener(
+              "click",
+              withButtonLock(refs.shortSessionClearBtn, shortSessionClear),
+            );
+          getCurrentSessionId();
+          if (refs.shortAddBtn)
+            refs.shortAddBtn.addEventListener(
+              "click",
+              withButtonLock(refs.shortAddBtn, shortTermAdd),
+            );
+          if (refs.procAddBtn)
+            refs.procAddBtn.addEventListener(
+              "click",
+              withButtonLock(refs.procAddBtn, proceduralAdd),
+            );
+          loadShortTermRetentionDays();
+          if (refs.shortTermRetentionSaveBtn)
+            refs.shortTermRetentionSaveBtn.addEventListener(
+              "click",
+              saveShortTermRetentionDays,
+            );
+          loadWikiFtsWeightFromStorage();
+          if (refs.wikiFtsWeight) {
+            refs.wikiFtsWeight.addEventListener(
+              "input",
+              clampWikiFtsWeightField,
+            );
+            refs.wikiFtsWeight.addEventListener(
+              "change",
+              saveWikiFtsWeightToStorage,
+            );
+            refs.wikiFtsWeight.addEventListener("blur", function () {
+              var w = getWikiFtsWeight();
+              refs.wikiFtsWeight.value = String(w);
+              saveWikiFtsWeightToStorage();
+            });
+          }
+          if (refs.npcId) {
+            refs.npcId.addEventListener("change", function () {
+              if (refs.messages) refs.messages.innerHTML = "";
+              resetChatHistoryForCurrentSession();
+            });
+          }
+          if (refs.sessionIdInput) {
+            refs.sessionIdInput.addEventListener("change", function () {
+              resetChatHistoryForCurrentSession();
+            });
+          }
+        }
+
+        if (document.readyState === "loading") {
+          document.addEventListener("DOMContentLoaded", init);
+        } else {
+          init();
+        }
+      })();
+    </script>
+  </body>
 </html>

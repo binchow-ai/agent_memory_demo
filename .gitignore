@@ -2,7 +2,9 @@
 .env
 .env.local
 *.pem
-
+.cursor/
+.claude/
+CLAUDE.md
 
 # 虚拟环境
 venv/
@@ -29,6 +31,7 @@ build/
 .vscode/
 *.swp
 .DS_Store
+.gitignore
 
 # 调试与日志
 .cursor/debug.log

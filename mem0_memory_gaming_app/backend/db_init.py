@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # =============================================================================
 # 常量：和 memory_backends 里用的名字保持一致，避免写错
 # =============================================================================
-MONGODB_DB_NAME = "mem0_agent_memory"           # MongoDB 数据库名
+MONGODB_DB_NAME = "mem0_agent_memory"  # MongoDB 数据库名
 MONGODB_COLLECTION_NAME = "extracted_memories"  # 存「抽取出的记忆」的集合名
 # 与 mem0 约定一致：向量索引名 = {collection}_vector_index；全文索引供混合检索
 MONGODB_VECTOR_INDEX_NAME = f"{MONGODB_COLLECTION_NAME}_vector_index"
@@ -73,7 +73,9 @@ def ensure_mongodb_indexes() -> None:
                 type="vectorSearch",
             )
         )
-        logger.info("MongoDB 向量索引已创建: %s（Atlas 上可能需要约 1 分钟就绪）", index_name)
+        logger.info(
+            "MongoDB 向量索引已创建: %s（Atlas 上可能需要约 1 分钟就绪）", index_name
+        )
 
     # 记忆集合暂时不要全文索引
     # Atlas Search 全文索引：对 payload.data 建索引，供混合检索 $search 分支使用
@@ -115,14 +117,18 @@ def ensure_postgres_resources() -> None:
     - 「IF NOT EXISTS」表示已有则什么都不做，没有才创建
     """
     if not POSTGRES_URI or not POSTGRES_URI.strip():
-        logger.info("POSTGRES_URI 未配置，跳过 PostgreSQL 资源初始化")
+        # logger.info("POSTGRES_URI 未配置，跳过 PostgreSQL 资源初始化")
         return
     import psycopg2
 
     conn_str = POSTGRES_URI.strip()
     # 云上的 Postgres（如 Supabase）通常要求 SSL；连接串里没写 sslmode 就自动加上
     if "sslmode=" not in conn_str:
-        conn_str = conn_str.rstrip("/") + ("?" if "?" not in conn_str else "&") + "sslmode=require"
+        conn_str = (
+            conn_str.rstrip("/")
+            + ("?" if "?" not in conn_str else "&")
+            + "sslmode=require"
+        )
 
     conn = psycopg2.connect(conn_str)
     conn.autocommit = True  # 执行 CREATE EXTENSION 这类 DDL 不需要事务，直接提交
