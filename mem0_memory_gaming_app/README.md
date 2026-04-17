@@ -3,7 +3,7 @@
 # 🎮 开放世界 NPC 对话记忆测试
 
 基于 **[mem0](https://github.com/mem0ai/mem0)** 的开放世界 NPC 对话记忆 Demo  
-支持 **长期 / 短期 / 过程记忆**，可切换 **MongoDB** 或 **PostgreSQL（pgvector）** 对比存储与召回表现
+支持 **长期 / 短期 / 过程记忆**，向量存储使用 **MongoDB Atlas**
 
 <img src="images/demo-1.png" alt="demo" width="800" />
 
@@ -53,7 +53,7 @@
 | 层     | 技术                                                  |
 | ------ | ----------------------------------------------------- |
 | 后端   | FastAPI · mem0（OSS） · Voyage 嵌入 · DeepSeek        |
-| 向量库 | MongoDB Atlas 或 PostgreSQL（pgvector）               |
+| 向量库 | MongoDB Atlas                                         |
 | 前端   | 单页 HTML + 原生 JS · 左侧内容区 + 右侧可拖拽日志面板 |
 
 ---
@@ -65,7 +65,7 @@ mem0_memory_gaming_app/
 ├── backend/
 │   ├── config.py              # 环境变量与配置
 │   ├── db_init.py             # 启动时创建库/表/索引（存在则跳过）
-│   ├── memory_backends.py     # mem0 双后端封装（MongoDB / PostgreSQL）
+│   ├── memory_backends.py     # mem0 后端配置（MongoDB）
 │   ├── mongodb_search.py      # Atlas 向量/全文/混合检索 + Voyage rerank
 │   ├── npc_personas.py        # 固定场景 NPC 人设与系统提示
 │   ├── custom_categories.py   # 记忆元数据维度定义与 LLM 抽取
@@ -91,13 +91,10 @@ mem0_memory_gaming_app/
 
 | 变量               | 必填 | 说明                                |
 | ------------------ | :--: | ----------------------------------- |
-| `MONGODB_URI`      |  △   | MongoDB 连接串（至少配一个向量库）  |
-| `POSTGRES_URI`     |  △   | PostgreSQL 连接串                   |
+| `MONGODB_URI`      |  ✅  | MongoDB 连接串                      |
 | `VOYAGE_API_KEY`   |  ✅  | Voyage 嵌入（mem0 用）              |
 | `DEEPSEEK_API_KEY` |  ✅  | DeepSeek（NPC 回复 + 长短记忆分类） |
 | `DEEPSEEK_MODEL`   |      | 可选，默认 `deepseek-chat`          |
-
-> △ 表示至少配置一个向量库即可。
 
 ---
 
@@ -141,7 +138,6 @@ python -m http.server 5500
 
 | 控件     | 说明                                                       |
 | -------- | ---------------------------------------------------------- |
-| 记忆后端 | MongoDB / PostgreSQL 切换                                  |
 | 玩家 ID  | 同一 ID 下记忆共用，默认 `player-1`                        |
 | 当前 NPC | 填写则按「玩家 + NPC」隔离记忆；留空使用默认 `npc-default` |
 
@@ -191,19 +187,16 @@ python -m http.server 5500
 
 ## 🗄️ 库表与索引
 
-| 后端           | 自动初始化                                                                                   |
-| -------------- | -------------------------------------------------------------------------------------------- |
-| **MongoDB**    | 数据库 `mem0_agent_memory` → 集合 `extracted_memories` → 向量搜索索引（新索引约 1 分钟就绪） |
-| **PostgreSQL** | `CREATE EXTENSION IF NOT EXISTS vector;`，mem0 首次写入时自动建表                            |
-
-> 若只测一种后端，仅配置对应 URI 即可。
+| 后端        | 自动初始化                                                                                   |
+| ----------- | -------------------------------------------------------------------------------------------- |
+| **MongoDB** | 数据库 `mem0_agent_memory` → 集合 `extracted_memories` → 向量搜索索引（新索引约 1 分钟就绪） |
 
 ---
 
 ## 📦 依赖
 
 ```
-mem0ai  ·  langchain-voyageai  ·  pymongo  ·  pgvector  ·  psycopg2-binary
+mem0ai  ·  langchain-voyageai  ·  pymongo
 fastapi  ·  uvicorn  ·  openai  ·  python-dotenv
 ```
 
@@ -214,7 +207,7 @@ fastapi  ·  uvicorn  ·  openai  ·  python-dotenv
 ## English (EN)
 
 Open-world NPC conversation memory demo built on **[mem0](https://github.com/mem0ai/mem0)**.  
-Supports **long-term / short-term / procedural memory**, with a switchable backend (**MongoDB** or **PostgreSQL + pgvector**) to compare storage & retrieval behavior.
+Supports **long-term / short-term / procedural memory**, with vector storage on **MongoDB Atlas**.
 
 ### Features
 
@@ -234,7 +227,7 @@ Supports **long-term / short-term / procedural memory**, with a switchable backe
 ### Tech stack
 
 - **Backend**: FastAPI, mem0 (OSS), Voyage embeddings, DeepSeek
-- **Vector store**: MongoDB Atlas or PostgreSQL (pgvector)
+- **Vector store**: MongoDB Atlas
 - **Frontend**: single-page HTML + vanilla JS (with a shared SSE log panel)
 
 ### Environment variables
@@ -245,7 +238,7 @@ Required:
 
 - `VOYAGE_API_KEY`
 - `DEEPSEEK_API_KEY`
-- `MONGODB_URI` or `POSTGRES_URI`
+- `MONGODB_URI`
 
 ### Run locally
 
